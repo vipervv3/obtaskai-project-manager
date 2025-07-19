@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { fetchProjects } from '../../store/slices/projectsSlice';
+import { User } from '../../types';
 import aiService from '../../services/aiService';
 import {
   LightBulbIcon,
@@ -10,7 +11,7 @@ import {
   UsersIcon,
   CalendarIcon,
   BellIcon,
-  TrendingUpIcon,
+  ArrowTrendingUpIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
   InformationCircleIcon,
@@ -65,7 +66,7 @@ const AIDashboard: React.FC = () => {
 
   const generateAllInsights = () => {
     const allTasks = projects.flatMap(p => p.tasks || []);
-    const teamMembers = projects.flatMap(p => p.members?.map(m => m.user).filter(Boolean) || []);
+    const teamMembers = projects.flatMap(p => p.members?.map(m => m.user).filter(Boolean) || []) as User[];
     const recentActivity: any[] = []; // Mock data
 
     // 1. Smart Task Scheduling
@@ -149,7 +150,7 @@ const AIDashboard: React.FC = () => {
     { id: 'analytics', name: 'Project Analytics', icon: ChartBarIcon, count: insights.analytics.length },
     { id: 'meetings', name: 'Meeting Summaries', icon: UsersIcon, count: insights.meetings.length },
     { id: 'resources', name: 'Resource Allocation', icon: UsersIcon, count: insights.resources.length },
-    { id: 'timeline', name: 'Timeline Predictions', icon: TrendingUpIcon, count: insights.timeline.length },
+    { id: 'timeline', name: 'Timeline Predictions', icon: ArrowTrendingUpIcon, count: insights.timeline.length },
     { id: 'notifications', name: 'Smart Notifications', icon: BellIcon, count: insights.notifications.length },
   ];
 
