@@ -189,10 +189,39 @@ const Dashboard: React.FC = () => {
         <div className="card">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Activity</h3>
           <div className="space-y-3">
-            <div className="text-sm">
-              <p className="text-gray-900">No recent activity</p>
-              <p className="text-gray-500">Start working on projects to see activity here.</p>
-            </div>
+            {projects.length === 0 ? (
+              <div className="text-sm">
+                <p className="text-gray-900">No recent activity</p>
+                <p className="text-gray-500">Start working on projects to see activity here.</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {projects.slice(0, 5).map((project) => {
+                  const recentTasks = project.tasks?.slice(0, 2) || [];
+                  return (
+                    <div key={`activity-${project.id}`} className="border-l-2 border-primary-200 pl-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-gray-900">{project.name}</p>
+                        <span className="text-xs text-gray-500">
+                          {project.updated_at ? new Date(project.updated_at).toLocaleDateString() : 'Recently'}
+                        </span>
+                      </div>
+                      {recentTasks.length > 0 ? (
+                        <div className="mt-1">
+                          {recentTasks.map((task) => (
+                            <p key={task.id} className="text-xs text-gray-600">
+                              • {task.status === 'done' ? 'Completed' : 'Working on'}: {task.title}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-600 mt-1">Project created</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -205,9 +234,29 @@ const Dashboard: React.FC = () => {
                 <p className="text-gray-500">Create projects and tasks to get AI-powered insights.</p>
               </div>
             ) : aiRecommendations.length === 0 ? (
-              <div className="text-sm">
-                <p className="text-gray-900">Analyzing your workflow...</p>
-                <p className="text-gray-500">AI insights will appear here once analysis is complete.</p>
+              <div className="space-y-3">
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-start mb-2">
+                    <LightBulbIcon className="w-4 h-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <span className="text-sm font-medium text-blue-800">Getting Started</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-blue-800">
+                    Add tasks to your projects to get AI-powered insights and recommendations.
+                  </p>
+                </div>
+                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-start mb-2">
+                    <CheckCircleIcon className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <span className="text-sm font-medium text-green-800">Project Health</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-green-800">
+                    You have {projects.length} active project{projects.length !== 1 ? 's' : ''}. Great start!
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="space-y-3 max-h-80 overflow-y-auto">
