@@ -28,7 +28,7 @@ const server = createServer(app);
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-frontend-domain.com'] 
+    ? ['https://obtaskai-project-manager.vercel.app', 'https://obtaskai-project-manager-git-main-vipervv3.vercel.app'] 
     : ['http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
