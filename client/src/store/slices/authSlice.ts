@@ -4,6 +4,7 @@ import { authService } from '../../services/authService';
 
 interface AuthSliceState extends AuthState {
   isAuthenticated: boolean;
+  initialized: boolean;
 }
 
 const initialState: AuthSliceState = {
@@ -11,6 +12,7 @@ const initialState: AuthSliceState = {
   loading: false,
   error: null,
   isAuthenticated: false,
+  initialized: false,
 };
 
 // Async thunks
@@ -89,6 +91,10 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.error = null;
       state.loading = false;
+      state.initialized = true;
+    },
+    setInitialized: (state) => {
+      state.initialized = true;
     },
   },
   extraReducers: (builder) => {
@@ -100,6 +106,7 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
+        state.initialized = true;
         if (action.payload.data) {
           state.user = action.payload.data.user;
           state.isAuthenticated = true;
@@ -167,6 +174,7 @@ const authSlice = createSlice({
       })
       .addCase(getCurrentUser.fulfilled, (state, action) => {
         state.loading = false;
+        state.initialized = true;
         if (action.payload.data) {
           state.user = action.payload.data;
           state.isAuthenticated = true;
@@ -175,6 +183,7 @@ const authSlice = createSlice({
       })
       .addCase(getCurrentUser.rejected, (state, action) => {
         state.loading = false;
+        state.initialized = true;
         state.error = action.payload as string;
         state.isAuthenticated = false;
         state.user = null;
@@ -199,5 +208,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, setUser, clearAuth } = authSlice.actions;
+export const { clearError, setUser, clearAuth, setInitialized } = authSlice.actions;
 export default authSlice.reducer;

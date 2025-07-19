@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from './store';
-import { getCurrentUser } from './store/slices/authSlice';
+import { getCurrentUser, setInitialized } from './store/slices/authSlice';
 import { authService } from './services/authService';
 import { notificationEngine } from './services/notificationEngine';
 
@@ -33,15 +33,23 @@ import ProtectedRoute from './components/Auth/ProtectedRoute';
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
-  const { isAuthenticated, loading, user } = useSelector((state: RootState) => state.auth);
+  const { isAuthenticated, loading, user, initialized } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     // Check if user is already authenticated on app load
     const token = authService.getToken();
-    if (token && !isAuthenticated) {
-      dispatch(getCurrentUser());
+    if (token && !isAuthenticated && !loading && !initialized) {
+      console.log('Found stored token, fetching user data...');
+      dispatch(getCurrentUser()).catch((error) => {
+        console.error('Failed to restore user session:', error);
+        // Clear invalid tokens
+        authService.clearTokens();
+      });
+    } else if (!token && !initialized) {
+      // No token found, mark as initialized
+      dispatch(setInitialized());
     }
-  }, [dispatch, isAuthenticated]);
+  }, [dispatch, isAuthenticated, loading, initialized]);
 
   // Initialize real-time notifications when user is authenticated
   useEffect(() => {
@@ -61,7 +69,8 @@ function App() {
     }
   }, [isAuthenticated, user]);
 
-  if (loading) {
+  // Show loading while checking authentication or during auth operations
+  if (loading || !initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
