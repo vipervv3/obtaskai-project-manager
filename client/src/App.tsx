@@ -21,6 +21,7 @@ import Projects from './pages/Projects/Projects';
 import ProjectDetail from './pages/Projects/ProjectDetail';
 import Tasks from './pages/Tasks/Tasks';
 import TaskDetail from './pages/Tasks/TaskDetail';
+import Calendar from './pages/Calendar/Calendar';
 import Meetings from './pages/Meetings/Meetings';
 import MeetingDetail from './pages/Meetings/MeetingDetail';
 import Team from './pages/Team/Team';
@@ -106,6 +107,9 @@ function App() {
         {/* Tasks */}
         <Route path="tasks" element={<Tasks />} />
         <Route path="tasks/:taskId" element={<TaskDetail />} />
+        
+        {/* Calendar */}
+        <Route path="calendar" element={<Calendar />} />
         
         {/* Meetings */}
         <Route path="meetings" element={<Meetings />} />
