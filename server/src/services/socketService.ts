@@ -24,7 +24,7 @@ export const setupSocketHandlers = (io: Server) => {
       }
 
       socket.userId = user.id;
-      socket.userEmail = user.email;
+      socket.userEmail = user.email || '';
       next();
     } catch (error) {
       console.error('Socket authentication error:', error);
