@@ -30,6 +30,12 @@ interface TaskFilters {
   search: string;
 }
 
+interface TaskFormData extends CreateTaskDto {
+  status: TaskStatus;
+  priority: TaskPriority;
+  project_id: string;
+}
+
 const Tasks: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -46,7 +52,7 @@ const Tasks: React.FC = () => {
     search: ''
   });
   
-  const [formData, setFormData] = useState<CreateTaskDto>({
+  const [formData, setFormData] = useState<TaskFormData>({
     title: '',
     description: '',
     status: 'todo',
@@ -86,7 +92,15 @@ const Tasks: React.FC = () => {
     }
     
     try {
-      const result = await dispatch(createTask(formData));
+      const taskData: CreateTaskDto & { project_id: string } = {
+        title: formData.title,
+        description: formData.description,
+        status: formData.status,
+        priority: formData.priority,
+        deadline: formData.deadline || undefined,
+        project_id: formData.project_id
+      };
+      const result = await dispatch(createTask(taskData));
       if (createTask.fulfilled.match(result)) {
         setShowCreateModal(false);
         setFormData({

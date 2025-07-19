@@ -37,7 +37,7 @@ export interface Task {
   title: string;
   description?: string;
   status: 'todo' | 'in_progress' | 'review' | 'done';
-  priority: 'low' | 'medium' | 'high';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
   assignee_id?: string;
   deadline?: string;
   estimated_hours?: number;
@@ -88,7 +88,7 @@ export interface ActionItem {
   task_id?: string;
   content: string;
   assignee?: string;
-  priority: 'low' | 'medium' | 'high';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
   status: 'pending' | 'completed';
   created_at: string;
 }
@@ -172,11 +172,13 @@ export interface UpdateProjectDto {
 export interface CreateTaskDto {
   title: string;
   description?: string;
+  status?: Task['status'];
   priority?: Task['priority'];
   assignee_id?: string;
   deadline?: string;
   estimated_hours?: number;
   parent_task_id?: string;
+  project_id?: string;
 }
 
 export interface UpdateTaskDto {
