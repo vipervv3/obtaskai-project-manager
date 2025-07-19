@@ -116,7 +116,7 @@ const AIDashboard: React.FC = () => {
       case 'resources':
         return <UsersIcon className="w-5 h-5" />;
       case 'timeline':
-        return <TrendingUpIcon className="w-5 h-5" />;
+        return <ArrowTrendingUpIcon className="w-5 h-5" />;
       case 'notifications':
         return <BellIcon className="w-5 h-5" />;
       default:
