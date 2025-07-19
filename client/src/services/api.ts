@@ -55,7 +55,7 @@ class ApiService {
             }
           } catch (refreshError) {
             store.dispatch(clearAuth());
-            window.location.href = '/login';
+            window.location.href = '/auth/login';
             return Promise.reject(refreshError);
           }
         }

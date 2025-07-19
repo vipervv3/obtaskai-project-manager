@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { supabaseAuth } from '../services/supabase';
 import { asyncHandler, createError } from '../middleware/errorHandler';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -151,6 +152,14 @@ router.post('/reset-password', asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: 'Password updated successfully'
+  });
+}));
+
+// Get current user (protected route)
+router.get('/me', authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res) => {
+  res.json({
+    success: true,
+    data: req.user
   });
 }));
 

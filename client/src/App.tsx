@@ -42,11 +42,14 @@ function App() {
       console.log('Found stored token, fetching user data...');
       dispatch(getCurrentUser()).catch((error) => {
         console.error('Failed to restore user session:', error);
+        console.error('Error details:', error.response?.data);
         // Clear invalid tokens
         authService.clearTokens();
+        dispatch(setInitialized());
       });
     } else if (!token && !initialized) {
       // No token found, mark as initialized
+      console.log('No token found, marking as initialized');
       dispatch(setInitialized());
     }
   }, [dispatch, isAuthenticated, loading, initialized]);
