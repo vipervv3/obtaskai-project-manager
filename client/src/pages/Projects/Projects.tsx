@@ -71,12 +71,13 @@ const Projects: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Projects</h1>
         <button 
           onClick={() => setShowCreateModal(true)}
-          className="btn-primary"
+          className="btn-primary text-sm sm:text-base px-3 py-2 sm:px-4"
         >
-          New Project
+          <span className="hidden sm:inline">New Project</span>
+          <span className="sm:hidden">New</span>
         </button>
       </div>
       

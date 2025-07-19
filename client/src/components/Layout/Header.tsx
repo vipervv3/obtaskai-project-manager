@@ -8,11 +8,16 @@ import {
   MagnifyingGlassIcon,
   UserCircleIcon,
   ChevronDownIcon,
+  Bars3Icon,
 } from '@heroicons/react/24/outline';
 import { Menu, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  onMobileMenuToggle?: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   const { unreadCount } = useSelector((state: RootState) => state.notifications);
@@ -26,21 +31,34 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
       <div className="flex items-center justify-between">
-        {/* Search */}
-        <div className="flex-1 max-w-lg">
+        {/* Mobile menu button */}
+        <button
+          onClick={onMobileMenuToggle}
+          className="lg:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <Bars3Icon className="h-6 w-6" />
+        </button>
+
+        {/* Search - Hidden on mobile, visible on tablet+ */}
+        <div className="hidden md:block flex-1 max-w-lg mx-4">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
             </div>
             <input
               type="text"
-              placeholder="Search projects, tasks, meetings..."
+              placeholder="Search..."
               className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
         </div>
+
+        {/* Mobile search button */}
+        <button className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+          <MagnifyingGlassIcon className="h-6 w-6" />
+        </button>
 
         {/* Right section */}
         <div className="flex items-center space-x-4">
@@ -61,7 +79,7 @@ const Header: React.FC = () => {
           <Menu as="div" className="relative">
             <Menu.Button className="flex items-center space-x-2 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
               <UserCircleIcon className="h-8 w-8" />
-              <div className="hidden md:block text-left">
+              <div className="hidden lg:block text-left">
                 <div className="text-sm font-medium text-gray-900">
                   {user?.full_name || 'User'}
                 </div>
@@ -69,7 +87,7 @@ const Header: React.FC = () => {
                   {user?.email}
                 </div>
               </div>
-              <ChevronDownIcon className="h-4 w-4" />
+              <ChevronDownIcon className="hidden md:block h-4 w-4" />
             </Menu.Button>
 
             <Transition

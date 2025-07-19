@@ -15,7 +15,11 @@ import {
   MicrophoneIcon,
 } from '@heroicons/react/24/outline';
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  onMobileClose?: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ onMobileClose }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { sidebarOpen } = useSelector((state: RootState) => state.ui);
 
@@ -30,9 +34,9 @@ const Sidebar: React.FC = () => {
   ];
 
   return (
-    <div className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 transition-all duration-300 ${
+    <div className={`h-full bg-white border-r border-gray-200 transition-all duration-300 ${
       sidebarOpen ? 'w-64' : 'w-16'
-    }`}>
+    } lg:${sidebarOpen ? 'w-64' : 'w-16'}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         {sidebarOpen && (
@@ -40,13 +44,20 @@ const Sidebar: React.FC = () => {
         )}
         <button
           onClick={() => dispatch(toggleSidebar())}
-          className="p-1 rounded-md hover:bg-gray-100 transition-colors"
+          className="hidden lg:block p-1 rounded-md hover:bg-gray-100 transition-colors"
         >
           {sidebarOpen ? (
             <ChevronLeftIcon className="w-5 h-5 text-gray-500" />
           ) : (
             <ChevronRightIcon className="w-5 h-5 text-gray-500" />
           )}
+        </button>
+        {/* Mobile close button */}
+        <button
+          onClick={onMobileClose}
+          className="lg:hidden p-1 rounded-md hover:bg-gray-100 transition-colors"
+        >
+          <ChevronLeftIcon className="w-5 h-5 text-gray-500" />
         </button>
       </div>
 
@@ -57,6 +68,7 @@ const Sidebar: React.FC = () => {
             <li key={item.name}>
               <NavLink
                 to={item.href}
+                onClick={() => onMobileClose && onMobileClose()}
                 className={({ isActive }) => `
                   group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors
                   ${isActive
