@@ -1,0 +1,16 @@
+{
+  "name": "ai-project-manager-shared",
+  "version": "1.0.0",
+  "description": "Shared types and utilities for AI Project Manager",
+  "main": "types/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.1.6"
+  },
+  "keywords": ["typescript", "types", "shared"],
+  "author": "AI Project Manager Team",
+  "license": "MIT"
+}
