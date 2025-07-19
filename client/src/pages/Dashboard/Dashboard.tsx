@@ -35,7 +35,21 @@ const Dashboard: React.FC = () => {
       
       // Get AI recommendations for all tasks
       const recommendations = aiService.analyzeTasks(allTasks, user);
-      setAiRecommendations(recommendations);
+      
+      // Add new AI features
+      const schedulingRecommendations = aiService.suggestOptimalSchedule(allTasks);
+      const timelineRecommendations = aiService.generateTimelinePredictions(projects);
+      const notificationRecommendations = aiService.generateContextualNotifications(user, projects, []);
+      
+      // Combine all recommendations
+      const allRecommendations = [
+        ...recommendations,
+        ...schedulingRecommendations,
+        ...timelineRecommendations,
+        ...notificationRecommendations
+      ].slice(0, 5); // Show top 5
+      
+      setAiRecommendations(allRecommendations);
       
       // Get suggested next task
       const suggested = aiService.suggestNextTask(allTasks);
@@ -271,6 +285,14 @@ const Dashboard: React.FC = () => {
                         return { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-800', icon: LightBulbIcon, iconColor: 'text-yellow-500' };
                       case 'deadline':
                         return { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-800', icon: ClockIcon, iconColor: 'text-orange-500' };
+                      case 'scheduling':
+                        return { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-800', icon: ClockIcon, iconColor: 'text-purple-500' };
+                      case 'timeline':
+                        return { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-800', icon: ClockIcon, iconColor: 'text-indigo-500' };
+                      case 'notification':
+                        return { bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-800', icon: InformationCircleIcon, iconColor: 'text-pink-500' };
+                      case 'resource':
+                        return { bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-800', icon: UsersIcon, iconColor: 'text-teal-500' };
                       default:
                         return { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800', icon: InformationCircleIcon, iconColor: 'text-blue-500' };
                     }

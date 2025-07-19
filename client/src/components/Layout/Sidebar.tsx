@@ -13,6 +13,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   MicrophoneIcon,
+  CpuChipIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
@@ -27,6 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onMobileClose }) => {
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Projects', href: '/projects', icon: FolderIcon },
     { name: 'Tasks', href: '/tasks', icon: Square2StackIcon },
+    { name: 'AI Insights', href: '/ai', icon: CpuChipIcon },
     { name: 'Meetings', href: '/meetings', icon: MicrophoneIcon },
     { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
     { name: 'Team', href: '/team', icon: UsersIcon },

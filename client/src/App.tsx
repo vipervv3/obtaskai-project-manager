@@ -22,6 +22,7 @@ import ProjectDetail from './pages/Projects/ProjectDetail';
 import Tasks from './pages/Tasks/Tasks';
 import TaskDetail from './pages/Tasks/TaskDetail';
 import Calendar from './pages/Calendar/Calendar';
+import AIDashboard from './pages/AI/AIDashboard';
 import Meetings from './pages/Meetings/Meetings';
 import MeetingDetail from './pages/Meetings/MeetingDetail';
 import Team from './pages/Team/Team';
@@ -110,6 +111,9 @@ function App() {
         
         {/* Calendar */}
         <Route path="calendar" element={<Calendar />} />
+        
+        {/* AI Dashboard */}
+        <Route path="ai" element={<AIDashboard />} />
         
         {/* Meetings */}
         <Route path="meetings" element={<Meetings />} />
