@@ -6,6 +6,7 @@ import { fetchTask, updateTask, deleteTask } from '../../store/slices/tasksSlice
 import { fetchTaskComments, createComment } from '../../store/slices/commentsSlice';
 import { taskService } from '../../services/taskService';
 import { Task, UpdateTaskDto, CreateCommentDto } from '../../types';
+import VoiceNotes from '../../components/Voice/VoiceNotes';
 
 const TaskDetail: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
@@ -537,6 +538,17 @@ const TaskDetail: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Voice Notes Section */}
+      {taskId && (
+        <div className="card">
+          <VoiceNotes
+            entityType="task"
+            entityId={taskId}
+            entityName={currentTask.title}
+          />
+        </div>
+      )}
 
       {/* Time Logging Modal */}
       {showTimeModal && (

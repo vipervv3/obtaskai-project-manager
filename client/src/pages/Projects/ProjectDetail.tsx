@@ -6,6 +6,7 @@ import { fetchProject } from '../../store/slices/projectsSlice';
 import { fetchProjectTasks, createTask } from '../../store/slices/tasksSlice';
 import { CreateTaskDto, Task } from '../../types';
 import aiService from '../../services/aiService';
+import VoiceNotes from '../../components/Voice/VoiceNotes';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -398,6 +399,17 @@ const ProjectDetail: React.FC = () => {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Voice Notes Section */}
+      {projectId && (
+        <div className="card">
+          <VoiceNotes
+            entityType="project"
+            entityId={projectId}
+            entityName={currentProject.name}
+          />
         </div>
       )}
 
