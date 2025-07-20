@@ -129,15 +129,48 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         audioRef.current.pause();
         setIsPlaying(false);
       } else {
-        const audioUrl = URL.createObjectURL(audioBlob);
-        audioRef.current.src = audioUrl;
-        audioRef.current.play();
-        setIsPlaying(true);
+        try {
+          // Use a safer approach for creating audio URL
+          let audioUrl: string;
+          
+          // Try URL.createObjectURL first, fallback to FileReader if blocked
+          try {
+            audioUrl = URL.createObjectURL(audioBlob);
+          } catch (error) {
+            console.warn('URL.createObjectURL blocked, using FileReader fallback:', error);
+            // Use FileReader as fallback
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              if (e.target?.result && audioRef.current) {
+                audioRef.current.src = e.target.result as string;
+                audioRef.current.play().catch(console.error);
+                setIsPlaying(true);
+                
+                audioRef.current.onended = () => {
+                  setIsPlaying(false);
+                };
+              }
+            };
+            reader.readAsDataURL(audioBlob);
+            return;
+          }
+          
+          audioRef.current.src = audioUrl;
+          audioRef.current.play().catch(console.error);
+          setIsPlaying(true);
 
-        audioRef.current.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(audioUrl);
-        };
+          audioRef.current.onended = () => {
+            setIsPlaying(false);
+            try {
+              URL.revokeObjectURL(audioUrl);
+            } catch (error) {
+              console.warn('Failed to revoke object URL:', error);
+            }
+          };
+        } catch (error) {
+          console.error('Failed to play recording:', error);
+          setError('Failed to play recording. This may be due to browser security restrictions.');
+        }
       }
     }
   };

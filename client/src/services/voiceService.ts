@@ -291,7 +291,35 @@ class VoiceService {
       audio.onerror = () => {
         resolve(10); // fallback duration
       };
-      audio.src = URL.createObjectURL(audioBlob);
+      
+      try {
+        // Try URL.createObjectURL first
+        const audioUrl = URL.createObjectURL(audioBlob);
+        audio.src = audioUrl;
+        
+        // Clean up after loading
+        audio.onloadedmetadata = () => {
+          resolve(audio.duration);
+          try {
+            URL.revokeObjectURL(audioUrl);
+          } catch (error) {
+            console.warn('Failed to revoke object URL:', error);
+          }
+        };
+      } catch (error) {
+        console.warn('URL.createObjectURL blocked, using FileReader fallback for duration:', error);
+        // Use FileReader as fallback
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            audio.src = e.target.result as string;
+          } else {
+            resolve(10); // fallback duration
+          }
+        };
+        reader.onerror = () => resolve(10);
+        reader.readAsDataURL(audioBlob);
+      }
     });
   }
 
