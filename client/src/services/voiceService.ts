@@ -135,20 +135,10 @@ class VoiceService {
     return 'audio/webm'; // fallback
   }
 
-  // Transcribe audio using Web Speech API (free) with OpenAI fallback
+  // Transcribe audio using backend service (with OpenAI/mock fallback)
   async transcribeAudio(audioBlob: Blob): Promise<string> {
     try {
-      // Try free Web Speech API first
-      const freeTranscription = await this.transcribeWithWebSpeechAPI(audioBlob);
-      if (freeTranscription) {
-        return freeTranscription;
-      }
-    } catch (error) {
-      console.warn('Free Web Speech API failed, trying OpenAI...', error);
-    }
-
-    try {
-      console.log('Transcribing audio with OpenAI Whisper...', {
+      console.log('Transcribing audio...', {
         size: audioBlob.size,
         type: audioBlob.type
       });
@@ -157,7 +147,7 @@ class VoiceService {
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.wav');
       
-      // Call the transcription API
+      // Call the transcription API (will use OpenAI if available, or mock if not)
       const response = await apiService.post('/transcription/transcribe', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -194,106 +184,6 @@ class VoiceService {
     }
   }
 
-  // Free transcription using Web Speech API
-  private async transcribeWithWebSpeechAPI(audioBlob: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      // Check if Web Speech API is supported
-      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        reject(new Error('Web Speech API not supported in this browser'));
-        return;
-      }
-
-      try {
-        // Create audio element to play the recorded audio
-        const audio = new Audio();
-        let audioUrl: string;
-        
-        try {
-          audioUrl = URL.createObjectURL(audioBlob);
-        } catch (error) {
-          // Fallback for browsers that block URL.createObjectURL
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            if (e.target?.result) {
-              audio.src = e.target.result as string;
-              startRecognition();
-            } else {
-              reject(new Error('Failed to read audio file'));
-            }
-          };
-          reader.readAsDataURL(audioBlob);
-          return;
-        }
-        
-        const startRecognition = () => {
-          // Initialize speech recognition
-          const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-          const recognition = new SpeechRecognition();
-          
-          recognition.continuous = true;
-          recognition.interimResults = false;
-          recognition.lang = 'en-US';
-          recognition.maxAlternatives = 1;
-
-          let finalTranscript = '';
-          let recognitionTimeout: NodeJS.Timeout;
-
-          recognition.onstart = () => {
-            console.log('Free Web Speech Recognition started');
-            // Play the audio for recognition
-            audio.play().catch(console.error);
-            
-            // Set timeout to stop recognition after audio duration + buffer
-            recognitionTimeout = setTimeout(() => {
-              recognition.stop();
-              if (!finalTranscript) {
-                reject(new Error('No speech detected in audio'));
-              }
-            }, 10000); // 10 second timeout
-          };
-
-          recognition.onresult = (event: any) => {
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-              if (event.results[i].isFinal) {
-                finalTranscript += event.results[i][0].transcript + ' ';
-              }
-            }
-          };
-
-          recognition.onend = () => {
-            clearTimeout(recognitionTimeout);
-            audio.pause();
-            try {
-              URL.revokeObjectURL(audioUrl);
-            } catch (error) {
-              console.warn('Failed to revoke object URL:', error);
-            }
-            
-            if (finalTranscript.trim()) {
-              console.log('Free transcription successful:', finalTranscript.trim());
-              resolve(finalTranscript.trim());
-            } else {
-              reject(new Error('No speech recognized'));
-            }
-          };
-
-          recognition.onerror = (event: any) => {
-            clearTimeout(recognitionTimeout);
-            console.error('Speech recognition error:', event.error);
-            reject(new Error(`Speech recognition failed: ${event.error}`));
-          };
-
-          // Start recognition
-          recognition.start();
-        };
-
-        audio.src = audioUrl;
-        startRecognition();
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
 
   // Extract intelligent notes from transcription
   extractIntelligentNotes(transcription: string): VoiceNote[] {

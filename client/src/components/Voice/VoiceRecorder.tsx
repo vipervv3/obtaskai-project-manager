@@ -107,6 +107,8 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
   const processRecording = async (blob: Blob) => {
     try {
+      setError(null); // Clear any previous errors
+      
       // Transcribe audio
       const transcriptionText = await voiceService.transcribeAudio(blob);
       setTranscription(transcriptionText);
@@ -116,9 +118,12 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       setExtractedNotes(notes);
 
       setIsProcessing(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to process recording:', error);
-      setError('Failed to process recording');
+      
+      // Show the specific error message from the service
+      const errorMessage = error.message || 'Failed to process recording. Please try again.';
+      setError(errorMessage);
       setIsProcessing(false);
     }
   };
