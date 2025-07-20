@@ -21,10 +21,13 @@ const upload = multer({
   },
 });
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI client only if API key is provided
+let openai: OpenAI | null = null;
+if (process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+}
 
 // POST /api/transcription/transcribe
 router.post('/transcribe', authMiddleware, upload.single('audio'), async (req, res) => {
@@ -36,7 +39,7 @@ router.post('/transcribe', authMiddleware, upload.single('audio'), async (req, r
       });
     }
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!openai) {
       console.warn('OpenAI API key not configured, using mock transcription');
       // Fallback to mock transcription if no API key
       const mockTranscriptions = [
