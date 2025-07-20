@@ -1,7 +1,16 @@
 import express from 'express';
 import multer from 'multer';
 import { OpenAI } from 'openai';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const router = express.Router();
 
@@ -129,9 +138,10 @@ router.post('/transcribe', authMiddleware, upload.single('audio'), async (req, r
 });
 
 // POST /api/transcription/voice-notes
-router.post('/voice-notes', authMiddleware, async (req, res) => {
+router.post('/voice-notes', authMiddleware, async (req: AuthenticatedRequest, res) => {
   try {
     const { entityType, entityId, notes, transcription, timestamp } = req.body;
+    const userId = req.user?.id;
     
     if (!entityType || !entityId || !notes || !Array.isArray(notes)) {
       return res.status(400).json({
@@ -140,20 +150,56 @@ router.post('/voice-notes', authMiddleware, async (req, res) => {
       });
     }
 
-    // TODO: Store voice notes in database
-    // For now, we'll just return success
-    console.log('Saving voice notes:', {
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated'
+      });
+    }
+
+    console.log('Saving voice notes to database:', {
       entityType,
       entityId,
       notesCount: notes.length,
-      transcriptionLength: transcription?.length || 0
+      transcriptionLength: transcription?.length || 0,
+      userId
     });
+
+    // Save each extracted note to the database
+    const voiceNoteRecords = notes.map((note: any) => ({
+      entity_type: entityType,
+      entity_id: entityId,
+      user_id: userId,
+      original_transcription: transcription || '',
+      transcription_confidence: 0.95,
+      transcription_language: 'en',
+      note_type: note.type,
+      note_content: note.content,
+      note_priority: note.priority,
+      note_confidence: note.confidence || 0.8
+    }));
+
+    const { data, error } = await supabase
+      .from('voice_notes')
+      .insert(voiceNoteRecords)
+      .select();
+
+    if (error) {
+      console.error('Database error saving voice notes:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to save voice notes to database'
+      });
+    }
+
+    console.log('Voice notes saved successfully:', data?.length);
 
     res.json({
       success: true,
       data: {
         message: 'Voice notes saved successfully',
-        noteCount: notes.length
+        noteCount: data?.length || 0,
+        savedNotes: data
       }
     });
 
@@ -167,9 +213,10 @@ router.post('/voice-notes', authMiddleware, async (req, res) => {
 });
 
 // GET /api/transcription/voice-notes/:entityType/:entityId
-router.get('/voice-notes/:entityType/:entityId', authMiddleware, async (req, res) => {
+router.get('/voice-notes/:entityType/:entityId', authMiddleware, async (req: AuthenticatedRequest, res) => {
   try {
     const { entityType, entityId } = req.params;
+    const userId = req.user?.id;
     
     if (!entityType || !entityId) {
       return res.status(400).json({
@@ -178,14 +225,47 @@ router.get('/voice-notes/:entityType/:entityId', authMiddleware, async (req, res
       });
     }
 
-    // TODO: Retrieve voice notes from database
-    // For now, return empty array
-    console.log('Retrieving voice notes for:', { entityType, entityId });
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated'
+      });
+    }
+
+    console.log('Retrieving voice notes from database:', { entityType, entityId, userId });
+
+    // Retrieve voice notes from database
+    const { data, error } = await supabase
+      .from('voice_notes')
+      .select('*')
+      .eq('entity_type', entityType)
+      .eq('entity_id', entityId)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Database error retrieving voice notes:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve voice notes from database'
+      });
+    }
+
+    // Transform database records to match frontend VoiceNote interface
+    const transformedNotes = data?.map(record => ({
+      content: record.note_content,
+      type: record.note_type,
+      priority: record.note_priority,
+      timestamp: record.created_at,
+      confidence: record.note_confidence || 0.8
+    })) || [];
+
+    console.log('Retrieved voice notes:', transformedNotes.length);
 
     res.json({
       success: true,
       data: {
-        notes: [] // Empty for now until we implement database storage
+        notes: transformedNotes
       }
     });
 
