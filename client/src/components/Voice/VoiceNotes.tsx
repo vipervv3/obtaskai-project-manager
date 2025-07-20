@@ -39,7 +39,11 @@ const VoiceNotes: React.FC<VoiceNotesProps> = ({
     try {
       setLoading(true);
       setError(null);
+      console.log('Loading voice notes for:', { entityType, entityId });
+      
       const voiceNotes = await voiceService.getVoiceNotes(entityType, entityId);
+      console.log('Loaded voice notes:', voiceNotes);
+      
       setNotes(voiceNotes);
     } catch (error) {
       console.error('Failed to load voice notes:', error);
@@ -50,7 +54,8 @@ const VoiceNotes: React.FC<VoiceNotesProps> = ({
   };
 
   const handleNotesExtracted = (newNotes: VoiceNote[]) => {
-    setNotes(prev => [...prev, ...newNotes]);
+    // Reload notes from database to get the most current state
+    loadVoiceNotes();
     setShowRecorder(false);
   };
 

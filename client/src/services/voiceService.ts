@@ -361,7 +361,13 @@ class VoiceService {
   async getVoiceNotes(entityType: 'project' | 'task', entityId: string): Promise<VoiceNote[]> {
     try {
       const response = await apiService.get(`/transcription/voice-notes/${entityType}/${entityId}`);
-      return response.data.notes || [];
+      console.log('Voice notes API response:', response.data);
+      
+      // Handle both possible response formats
+      const notes = response.data.data?.notes || response.data.notes || [];
+      console.log('Extracted voice notes:', notes);
+      
+      return notes;
     } catch (error) {
       console.error('Failed to fetch voice notes:', error);
       return [];
