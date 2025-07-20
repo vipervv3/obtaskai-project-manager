@@ -135,43 +135,52 @@ class VoiceService {
     return 'audio/webm'; // fallback
   }
 
-  // Transcribe audio using AI (mock implementation - in production use services like OpenAI Whisper, Google Speech-to-Text)
+  // Transcribe audio using OpenAI Whisper API
   async transcribeAudio(audioBlob: Blob): Promise<string> {
     try {
-      // In production, you would send the audio to a transcription service
-      // For now, we'll simulate with a mock response
-      console.log('Transcribing audio...', audioBlob);
+      console.log('Transcribing audio with OpenAI Whisper...', {
+        size: audioBlob.size,
+        type: audioBlob.type
+      });
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock transcription based on audio duration
-      const duration = await this.getAudioDuration(audioBlob);
-      
-      if (duration < 5) {
-        return "Quick note about the project progress.";
-      } else if (duration < 15) {
-        return "We need to update the project timeline and assign the frontend tasks to Sarah. The deadline is next Friday and we should prioritize the login functionality.";
-      } else {
-        return "Meeting discussion about project milestones. Key points: 1) Backend API is 80% complete, 2) Frontend needs design review, 3) Testing phase starts next week. Action items: John will finish the user authentication by Wednesday, Sarah will complete the dashboard design, and Mike will set up the testing environment. Important decision: We agreed to extend the deadline by one week to ensure quality.";
-      }
-
-      // Uncomment below for real transcription service integration
-      /*
+      // Create FormData for file upload
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.wav');
       
-      const response = await apiService.post('/ai/transcribe', formData, {
+      // Call the transcription API
+      const response = await apiService.post('/transcription/transcribe', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
       
-      return response.data.transcription;
-      */
-    } catch (error) {
+      if (response.data.success) {
+        const { transcription, language, duration, confidence } = response.data.data;
+        
+        console.log('Transcription successful:', {
+          transcription: transcription.substring(0, 100) + '...',
+          language,
+          duration,
+          confidence
+        });
+        
+        return transcription;
+      } else {
+        throw new Error(response.data.error || 'Transcription failed');
+      }
+    } catch (error: any) {
       console.error('Transcription failed:', error);
-      throw new Error('Failed to transcribe audio');
+      
+      // If transcription fails, try to provide a helpful error message
+      if (error.response?.status === 413) {
+        throw new Error('Audio file is too large. Please record a shorter message (max 25MB).');
+      } else if (error.response?.status === 400) {
+        throw new Error('Invalid audio format. Please try recording again.');
+      } else if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      } else {
+        throw new Error('Failed to transcribe audio. Please check your internet connection and try again.');
+      }
     }
   }
 
@@ -339,7 +348,7 @@ class VoiceService {
         timestamp: new Date().toISOString()
       };
 
-      await apiService.post('/ai/voice-notes', payload);
+      await apiService.post('/transcription/voice-notes', payload);
       console.log('Voice note saved successfully');
     } catch (error) {
       console.error('Failed to save voice note:', error);
@@ -350,7 +359,7 @@ class VoiceService {
   // Get voice notes for project/task
   async getVoiceNotes(entityType: 'project' | 'task', entityId: string): Promise<VoiceNote[]> {
     try {
-      const response = await apiService.get(`/ai/voice-notes/${entityType}/${entityId}`);
+      const response = await apiService.get(`/transcription/voice-notes/${entityType}/${entityId}`);
       return response.data.notes || [];
     } catch (error) {
       console.error('Failed to fetch voice notes:', error);

@@ -19,6 +19,7 @@ import commentRoutes from './routes/comments';
 import meetingRoutes from './routes/meetings';
 import timeEntryRoutes from './routes/timeEntries';
 import aiRoutes from './routes/ai';
+import transcriptionRoutes from './routes/transcription';
 
 dotenv.config();
 
@@ -83,6 +84,7 @@ app.use('/api/comments', authMiddleware, commentRoutes);
 app.use('/api/meetings', authMiddleware, meetingRoutes);
 app.use('/api/time-entries', authMiddleware, timeEntryRoutes);
 app.use('/api/ai', authMiddleware, aiRoutes);
+app.use('/api/transcription', transcriptionRoutes);
 
 // Setup Socket.io handlers
 setupSocketHandlers(io);
