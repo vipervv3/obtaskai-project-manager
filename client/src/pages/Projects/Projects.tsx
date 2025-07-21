@@ -68,36 +68,51 @@ const Projects: React.FC = () => {
     }
   };
 
+  console.log('Projects rendering, projects:', projects);
+  console.log('ShowCreateModal:', showCreateModal);
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Projects</h1>
+    <div style={{ padding: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Projects</h1>
         <button 
           onClick={() => setShowCreateModal(true)}
           style={{
             backgroundColor: '#3b82f6',
             color: 'white',
-            padding: '8px 16px',
+            padding: '10px 20px',
             borderRadius: '8px',
             border: 'none',
             fontWeight: '500',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            fontSize: '16px'
           }}
-          onMouseOver={(e) => e.target.style.backgroundColor = '#2563eb'}
-          onMouseOut={(e) => e.target.style.backgroundColor = '#3b82f6'}
         >
           New Project
         </button>
       </div>
       
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
+          <div style={{ 
+            width: '32px', 
+            height: '32px', 
+            border: '3px solid #e5e7eb',
+            borderTopColor: '#3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
         </div>
       ) : projects.length === 0 ? (
-        <div className="card text-center py-12">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No projects yet</h3>
-          <p className="text-gray-600 mb-4">Create your first project to get started</p>
+        <div style={{ 
+          backgroundColor: 'white', 
+          textAlign: 'center', 
+          padding: '48px', 
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb'
+        }}>
+          <h3 style={{ fontSize: '18px', fontWeight: '500', marginBottom: '8px' }}>No projects yet</h3>
+          <p style={{ color: '#6b7280', marginBottom: '16px' }}>Create your first project to get started</p>
           <button 
             onClick={() => setShowCreateModal(true)}
             style={{
@@ -114,11 +129,19 @@ const Projects: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
           {projects.map((project) => (
             <div 
               key={project.id}
-              className="card hover:shadow-lg transition-shadow relative group"
+              style={{
+                backgroundColor: 'white',
+                borderRadius: '8px',
+                padding: '20px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                position: 'relative',
+                border: '1px solid #e5e7eb',
+                cursor: 'pointer'
+              }}
             >
               <div 
                 onClick={() => handleProjectClick(project.id)}
