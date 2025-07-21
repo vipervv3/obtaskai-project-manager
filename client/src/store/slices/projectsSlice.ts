@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Project, CreateProjectDto, UpdateProjectDto } from '../../types';
-import { projectService } from '../../services/projectService';
 
 interface ProjectsState {
   projects: Project[];
@@ -22,15 +21,61 @@ const initialState: ProjectsState = {
   deleting: false,
 };
 
-// Async thunks
+// Mock data for projects
+const mockProjects: Project[] = [
+  {
+    id: '1',
+    name: 'Project Alpha',
+    description: 'A sample project to demonstrate the interface',
+    status: 'active',
+    deadline: '2025-08-15',
+    created_at: '2025-01-01T00:00:00Z',
+    updated_at: '2025-01-15T00:00:00Z',
+    owner_id: '1',
+    members: [],
+    tasks: []
+  },
+  {
+    id: '2',
+    name: 'Project Beta',
+    description: 'Another project showcasing different features',
+    status: 'active',
+    deadline: '2025-09-01',
+    created_at: '2025-01-10T00:00:00Z',
+    updated_at: '2025-01-20T00:00:00Z',
+    owner_id: '1',
+    members: [],
+    tasks: []
+  },
+  {
+    id: '3',
+    name: 'Project Gamma',
+    description: 'Completed project example',
+    status: 'completed',
+    deadline: '2025-07-30',
+    created_at: '2024-12-01T00:00:00Z',
+    updated_at: '2025-01-25T00:00:00Z',
+    owner_id: '1',
+    members: [],
+    tasks: []
+  }
+];
+
+// Async thunks (mock implementations)
 export const fetchProjects = createAsyncThunk(
   'projects/fetchProjects',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await projectService.getProjects();
-      return response.data;
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Get projects from localStorage or use mock data
+      const stored = localStorage.getItem('mock_projects');
+      const projects = stored ? JSON.parse(stored) : mockProjects;
+      
+      return { data: projects };
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.error || 'Failed to fetch projects');
+      return rejectWithValue('Failed to fetch projects');
     }
   }
 );
@@ -39,10 +84,19 @@ export const fetchProject = createAsyncThunk(
   'projects/fetchProject',
   async (projectId: string, { rejectWithValue }) => {
     try {
-      const response = await projectService.getProject(projectId);
-      return response.data;
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const stored = localStorage.getItem('mock_projects');
+      const projects = stored ? JSON.parse(stored) : mockProjects;
+      const project = projects.find((p: Project) => p.id === projectId);
+      
+      if (!project) {
+        return rejectWithValue('Project not found');
+      }
+      
+      return { data: project };
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.error || 'Failed to fetch project');
+      return rejectWithValue('Failed to fetch project');
     }
   }
 );
@@ -51,10 +105,30 @@ export const createProject = createAsyncThunk(
   'projects/createProject',
   async (projectData: CreateProjectDto, { rejectWithValue }) => {
     try {
-      const response = await projectService.createProject(projectData);
-      return response.data;
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const newProject: Project = {
+        id: Date.now().toString(),
+        name: projectData.name,
+        description: projectData.description || '',
+        status: 'active',
+        deadline: projectData.deadline || undefined,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        owner_id: '1',
+        members: [],
+        tasks: []
+      };
+      
+      // Save to localStorage
+      const stored = localStorage.getItem('mock_projects');
+      const projects = stored ? JSON.parse(stored) : mockProjects;
+      projects.unshift(newProject);
+      localStorage.setItem('mock_projects', JSON.stringify(projects));
+      
+      return { data: newProject };
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.error || 'Failed to create project');
+      return rejectWithValue('Failed to create project');
     }
   }
 );
@@ -63,10 +137,28 @@ export const updateProject = createAsyncThunk(
   'projects/updateProject',
   async ({ id, updates }: { id: string; updates: UpdateProjectDto }, { rejectWithValue }) => {
     try {
-      const response = await projectService.updateProject(id, updates);
-      return response.data;
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const stored = localStorage.getItem('mock_projects');
+      const projects = stored ? JSON.parse(stored) : mockProjects;
+      const projectIndex = projects.findIndex((p: Project) => p.id === id);
+      
+      if (projectIndex === -1) {
+        return rejectWithValue('Project not found');
+      }
+      
+      const updatedProject = {
+        ...projects[projectIndex],
+        ...updates,
+        updated_at: new Date().toISOString()
+      };
+      
+      projects[projectIndex] = updatedProject;
+      localStorage.setItem('mock_projects', JSON.stringify(projects));
+      
+      return { data: updatedProject };
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.error || 'Failed to update project');
+      return rejectWithValue('Failed to update project');
     }
   }
 );
@@ -75,27 +167,44 @@ export const deleteProject = createAsyncThunk(
   'projects/deleteProject',
   async (projectId: string, { rejectWithValue }) => {
     try {
-      await projectService.deleteProject(projectId);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Remove from localStorage
+      const stored = localStorage.getItem('mock_projects');
+      const projects = stored ? JSON.parse(stored) : mockProjects;
+      const updatedProjects = projects.filter((p: Project) => p.id !== projectId);
+      localStorage.setItem('mock_projects', JSON.stringify(updatedProjects));
+      
       return projectId;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.error || 'Failed to delete project');
+      return rejectWithValue('Failed to delete project');
     }
   }
 );
 
+// Simplified member management (mock implementation)
 export const addProjectMember = createAsyncThunk(
   'projects/addProjectMember',
   async ({ projectId, userEmail, role }: { projectId: string; userEmail: string; role?: string }, { rejectWithValue }) => {
     try {
-      console.log('Adding project member:', { projectId, userEmail, role });
-      const response = await projectService.addMember(projectId, userEmail, role);
-      console.log('Add member response:', response);
-      return response.data;
+      await new Promise(resolve => setTimeout(resolve, 300));
+      // Mock member data
+      const mockMember = {
+        id: Date.now().toString(),
+        project_id: projectId,
+        user_id: '2',
+        role: role || 'member',
+        created_at: new Date().toISOString(),
+        user: {
+          id: '2',
+          email: userEmail,
+          name: userEmail.split('@')[0],
+          avatar: null
+        }
+      };
+      return { data: mockMember };
     } catch (error: any) {
-      console.error('Add member error:', error);
-      console.error('Error response:', error.response);
-      const errorMessage = error.response?.data?.error || error.message || 'Failed to add member';
-      return rejectWithValue(errorMessage);
+      return rejectWithValue('Failed to add member');
     }
   }
 );
@@ -104,10 +213,10 @@ export const removeProjectMember = createAsyncThunk(
   'projects/removeProjectMember',
   async ({ projectId, memberId }: { projectId: string; memberId: string }, { rejectWithValue }) => {
     try {
-      await projectService.removeMember(projectId, memberId);
+      await new Promise(resolve => setTimeout(resolve, 300));
       return { projectId, memberId };
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.error || 'Failed to remove member');
+      return rejectWithValue('Failed to remove member');
     }
   }
 );
