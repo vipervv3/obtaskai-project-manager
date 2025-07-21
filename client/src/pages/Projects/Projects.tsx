@@ -74,10 +74,19 @@ const Projects: React.FC = () => {
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Projects</h1>
         <button 
           onClick={() => setShowCreateModal(true)}
-          className="btn-primary text-sm sm:text-base px-3 py-2 sm:px-4"
+          style={{
+            backgroundColor: '#3b82f6',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            fontWeight: '500',
+            cursor: 'pointer'
+          }}
+          onMouseOver={(e) => e.target.style.backgroundColor = '#2563eb'}
+          onMouseOut={(e) => e.target.style.backgroundColor = '#3b82f6'}
         >
-          <span className="hidden sm:inline">New Project</span>
-          <span className="sm:hidden">New</span>
+          New Project
         </button>
       </div>
       
@@ -91,7 +100,15 @@ const Projects: React.FC = () => {
           <p className="text-gray-600 mb-4">Create your first project to get started</p>
           <button 
             onClick={() => setShowCreateModal(true)}
-            className="btn-primary"
+            style={{
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              border: 'none',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
           >
             Create Project
           </button>
@@ -130,10 +147,21 @@ const Projects: React.FC = () => {
               <button
                 onClick={(e) => handleDeleteProject(e, project.id, project.name)}
                 disabled={deleting}
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                style={{
+                  position: 'absolute',
+                  top: '8px',
+                  right: '8px',
+                  backgroundColor: '#fef2f2',
+                  color: '#dc2626',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '4px',
+                  cursor: 'pointer',
+                  display: 'block'
+                }}
                 title="Delete project"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>
@@ -188,14 +216,30 @@ const Projects: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#f3f4f6',
+                    color: '#374151',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: '500'
+                  }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md transition-colors disabled:opacity-50"
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: creating ? '#9ca3af' : '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: creating ? 'not-allowed' : 'pointer',
+                    fontWeight: '500'
+                  }}
                 >
                   {creating ? 'Creating...' : 'Create Project'}
                 </button>
