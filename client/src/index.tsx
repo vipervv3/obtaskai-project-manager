@@ -1,7 +1,20 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import SimpleApp from './SimpleApp';
+import { Provider } from 'react-redux';
+import { BrowserRouter } from 'react-router-dom';
+import { store } from './store';
+import App from './App';
 import './index.css';
+
+// Workaround for Browser Locker extension interference
+const originalReplaceState = window.history.replaceState;
+window.history.replaceState = function(...args) {
+  try {
+    return originalReplaceState.apply(this, args);
+  } catch (error) {
+    console.warn('Browser extension interference detected, ignoring:', error);
+  }
+};
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -9,6 +22,10 @@ const root = ReactDOM.createRoot(
 
 root.render(
   <React.StrictMode>
-    <SimpleApp />
+    <Provider store={store}>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </Provider>
   </React.StrictMode>
 );

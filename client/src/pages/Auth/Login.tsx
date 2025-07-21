@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
-import { login, clearError } from '../../store/slices/authSlice';
+import { setUser, clearError } from '../../store/slices/authSlice';
 import LoadingSpinner from '../../components/UI/LoadingSpinner';
 
 const Login: React.FC = () => {
@@ -25,12 +25,23 @@ const Login: React.FC = () => {
       dispatch(clearError());
     }
 
-    try {
-      await dispatch(login({ email, password })).unwrap();
-      navigate(from, { replace: true });
-    } catch (error) {
-      // Error is handled by the slice
-    }
+    // Mock login for now - replace with real auth later
+    const mockUser = {
+      id: '1',
+      email: email,
+      name: email.split('@')[0],
+      role: 'admin' as const,
+      avatar: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    // Store user data
+    localStorage.setItem('access_token', 'mock-token');
+    localStorage.setItem('user_data', JSON.stringify(mockUser));
+    
+    dispatch(setUser(mockUser));
+    navigate(from, { replace: true });
   };
 
   return (

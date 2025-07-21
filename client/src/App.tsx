@@ -2,9 +2,7 @@ import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from './store';
-import { getCurrentUser, setInitialized } from './store/slices/authSlice';
-import { authService } from './services/authService';
-import { notificationEngine } from './services/notificationEngine';
+import { setInitialized, setUser } from './store/slices/authSlice';
 
 // Layout components
 import Layout from './components/Layout/Layout';
@@ -38,39 +36,36 @@ function App() {
   const { isAuthenticated, loading, user, initialized } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
-    // Check if user is already authenticated on app load
-    const token = authService.getToken();
-    if (token && !isAuthenticated && !loading && !initialized) {
-      console.log('Found stored token, fetching user data...');
-      dispatch(getCurrentUser()).catch((error) => {
-        console.error('Failed to restore user session:', error);
-        console.error('Error details:', error.response?.data);
-        // Clear invalid tokens
-        authService.clearTokens();
-        dispatch(setInitialized());
-      });
-    } else if (!token && !initialized) {
-      // No token found, mark as initialized
-      console.log('No token found, marking as initialized');
+    // Safe initialization without external service calls
+    const initAuth = () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        const userData = localStorage.getItem('user_data');
+        
+        if (token && userData) {
+          const user = JSON.parse(userData);
+          dispatch(setUser(user));
+        }
+      } catch (error) {
+        console.warn('Failed to restore auth state:', error);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user_data');
+      }
+      
       dispatch(setInitialized());
-    }
-  }, [dispatch, isAuthenticated, loading, initialized]);
+    };
 
-  // Initialize real-time notifications when user is authenticated
+    if (!initialized) {
+      initAuth();
+    }
+  }, [dispatch, initialized]);
+
+  // Initialize real-time notifications when user is authenticated (disabled for now)
   useEffect(() => {
     if (isAuthenticated && user?.id) {
-      console.log('Initializing real-time notifications for user:', user.id);
-      
-      // Connect to real-time notifications
-      notificationEngine.connect(user.id);
-      
-      // Request notification permissions
-      notificationEngine.requestNotificationPermission();
-      
-      // Cleanup on unmount
-      return () => {
-        notificationEngine.disconnect();
-      };
+      console.log('User authenticated:', user.id);
+      // Real-time notifications disabled for stability
     }
   }, [isAuthenticated, user]);
 
