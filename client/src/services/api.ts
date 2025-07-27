@@ -2,7 +2,9 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { store } from '../store';
 import { clearAuth, refreshToken } from '../store/slices/authSlice';
 
-const API_BASE_URL = process.env.REACT_APP_SERVER_URL || 'http://localhost:5000';
+// For mobile app, we need to use the computer's IP address
+// Replace this with your computer's actual IP address
+const API_BASE_URL = process.env.REACT_APP_SERVER_URL || 'http://192.168.1.185:5000';
 
 class ApiService {
   private api: AxiosInstance;

@@ -16,6 +16,24 @@ export const setupSocketHandlers = (io: Server) => {
         return next(new Error('Authentication error: No token provided'));
       }
 
+      // Handle mock token for development
+      if (token === 'mock-token' && process.env.NODE_ENV === 'development') {
+        // Find the test user by email
+        const { data: testUser, error: userError } = await supabase
+          .from('users')
+          .select('id, email, full_name')
+          .eq('email', 'test@example.com')
+          .single();
+
+        if (userError || !testUser) {
+          return next(new Error('Authentication error: Mock user not found'));
+        }
+
+        socket.userId = testUser.id;
+        socket.userEmail = testUser.email;
+        return next();
+      }
+
       // Verify token with Supabase
       const { data: { user }, error } = await supabase.auth.getUser(token);
       

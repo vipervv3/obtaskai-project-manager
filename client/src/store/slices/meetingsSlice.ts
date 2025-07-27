@@ -109,6 +109,18 @@ export const updateMeeting = createAsyncThunk(
   }
 );
 
+export const deleteMeeting = createAsyncThunk(
+  'meetings/deleteMeeting',
+  async (meetingId: string, { rejectWithValue }) => {
+    try {
+      await meetingService.deleteMeeting(meetingId);
+      return meetingId;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.error || 'Failed to delete meeting');
+    }
+  }
+);
+
 const meetingsSlice = createSlice({
   name: 'meetings',
   initialState,
@@ -156,7 +168,11 @@ const meetingsSlice = createSlice({
       })
       .addCase(fetchProjectMeetings.fulfilled, (state, action) => {
         state.loading = false;
-        state.meetings = action.payload.data || [];
+        // Don't replace all meetings, merge them
+        const newMeetings = action.payload.data || [];
+        const existingIds = new Set(state.meetings.map(m => m.id));
+        const uniqueNewMeetings = newMeetings.filter(m => !existingIds.has(m.id));
+        state.meetings = [...state.meetings, ...uniqueNewMeetings];
         state.error = null;
       })
       .addCase(fetchProjectMeetings.rejected, (state, action) => {
@@ -285,6 +301,17 @@ const meetingsSlice = createSlice({
           if (index !== -1) {
             state.meetings[index] = action.payload.data;
           }
+        }
+      })
+      
+      // Delete meeting
+      .addCase(deleteMeeting.fulfilled, (state, action) => {
+        const meetingId = action.payload;
+        state.meetings = state.meetings.filter(m => m.id !== meetingId);
+        
+        // Clear current meeting if it was deleted
+        if (state.currentMeeting?.id === meetingId) {
+          state.currentMeeting = null;
         }
       });
   },

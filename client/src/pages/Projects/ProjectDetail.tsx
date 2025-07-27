@@ -7,6 +7,8 @@ import { fetchProjectTasks, createTask } from '../../store/slices/tasksSlice';
 import { CreateTaskDto, Task } from '../../types';
 import aiService from '../../services/aiService';
 import VoiceNotes from '../../components/Voice/VoiceNotes';
+import GanttChart from '../../components/Gantt/GanttChart';
+import { CalendarDaysIcon, Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -15,7 +17,7 @@ const ProjectDetail: React.FC = () => {
   const { currentProject, loading: projectLoading } = useSelector((state: RootState) => state.projects);
   const { tasks, loading: tasksLoading, creating } = useSelector((state: RootState) => state.tasks);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+  const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'gantt'>('kanban');
   const [formData, setFormData] = useState<CreateTaskDto & { project_id?: string }>({
     title: '',
     description: '',
@@ -145,19 +147,30 @@ const ProjectDetail: React.FC = () => {
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('kanban')}
-                className={`px-3 py-1 text-sm font-medium rounded ${
+                className={`flex items-center gap-1 px-3 py-1 text-sm font-medium rounded ${
                   viewMode === 'kanban' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
                 }`}
               >
+                <Squares2X2Icon className="w-4 h-4" />
                 Kanban
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`px-3 py-1 text-sm font-medium rounded ${
+                className={`flex items-center gap-1 px-3 py-1 text-sm font-medium rounded ${
                   viewMode === 'list' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
                 }`}
               >
+                <ListBulletIcon className="w-4 h-4" />
                 List
+              </button>
+              <button
+                onClick={() => setViewMode('gantt')}
+                className={`flex items-center gap-1 px-3 py-1 text-sm font-medium rounded ${
+                  viewMode === 'gantt' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
+                }`}
+              >
+                <CalendarDaysIcon className="w-4 h-4" />
+                Gantt
               </button>
             </div>
             <button
@@ -228,7 +241,7 @@ const ProjectDetail: React.FC = () => {
               </div>
             ))}
           </div>
-        ) : (
+        ) : viewMode === 'list' ? (
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -285,7 +298,13 @@ const ProjectDetail: React.FC = () => {
               </tbody>
             </table>
           </div>
-        )}
+        ) : viewMode === 'gantt' ? (
+          <GanttChart 
+            project={currentProject}
+            tasks={tasks}
+            onTaskUpdate={(taskId) => handleTaskClick(taskId)}
+          />
+        ) : null}
       </div>
 
       {/* AI Insights Panel */}

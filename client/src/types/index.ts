@@ -72,13 +72,21 @@ export interface Meeting {
   project_id: string;
   title: string;
   description?: string;
+  scheduled_date: string;
+  scheduled_time: string;
+  duration_minutes: number;
+  timezone: string;
+  location?: string;
+  meeting_type: 'in_person' | 'video_call' | 'phone_call';
   transcript?: string;
   summary?: string;
   recording_url?: string;
   duration?: number;
   attendees: string[];
   action_items?: ActionItem[];
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
   created_at: string;
+  updated_at?: string;
   project?: Project;
 }
 
@@ -200,6 +208,12 @@ export interface CreateCommentDto {
 export interface CreateMeetingDto {
   title: string;
   description?: string;
+  scheduled_date: string;
+  scheduled_time: string;
+  duration_minutes: number;
+  timezone: string;
+  location?: string;
+  meeting_type: 'in_person' | 'video_call' | 'phone_call';
   attendees: string[];
 }
 

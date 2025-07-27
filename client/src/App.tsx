@@ -3,6 +3,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from './store';
 import { setInitialized, setUser } from './store/slices/authSlice';
+import { notificationEngine } from './services/notificationEngine';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { initMobileApp, getDeviceInfo } from './utils/mobileUtils';
 
 // Layout components
 import Layout from './components/Layout/Layout';
@@ -36,6 +39,13 @@ function App() {
   const { isAuthenticated, loading, user, initialized } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
+    // Initialize mobile optimizations
+    initMobileApp();
+    
+    // Log device info for debugging
+    const deviceInfo = getDeviceInfo();
+    console.log('🔧 Device Info:', deviceInfo);
+    
     // Safe initialization without external service calls
     const initAuth = () => {
       try {
@@ -45,6 +55,18 @@ function App() {
         if (token && userData) {
           const user = JSON.parse(userData);
           dispatch(setUser(user));
+        } else if (process.env.NODE_ENV === 'development') {
+          // Initialize with mock user for development
+          const mockUser = {
+            id: '605f6a0a-08bf-4f2e-a441-ced1499476a9',
+            email: 'test@example.com',
+            full_name: 'Test User',
+          };
+          
+          localStorage.setItem('access_token', 'mock-token');
+          localStorage.setItem('user_data', JSON.stringify(mockUser));
+          dispatch(setUser(mockUser));
+          console.log('Development mode: Mock user initialized');
         }
       } catch (error) {
         console.warn('Failed to restore auth state:', error);
@@ -61,12 +83,28 @@ function App() {
     }
   }, [dispatch, initialized]);
 
-  // Initialize real-time notifications when user is authenticated (disabled for now)
+  // Initialize notification engine when user is authenticated
   useEffect(() => {
-    if (isAuthenticated && user?.id) {
-      console.log('User authenticated:', user.id);
-      // Real-time notifications disabled for stability
+    if (isAuthenticated && user) {
+      console.log('Connecting notification engine for user:', user.email);
+      
+      // Set token for notification engine (using mock token for development)
+      localStorage.setItem('access_token', 'mock-token');
+      
+      // Connect to real-time notifications
+      notificationEngine.connect(user.id);
+      
+      // Request notification permissions
+      notificationEngine.requestNotificationPermission();
+    } else {
+      // Disconnect when user logs out
+      notificationEngine.disconnect();
     }
+
+    // Cleanup on unmount
+    return () => {
+      notificationEngine.disconnect();
+    };
   }, [isAuthenticated, user]);
 
   // Show loading while checking authentication or during auth operations
@@ -79,7 +117,8 @@ function App() {
   }
 
   return (
-    <Routes>
+    <ThemeProvider>
+      <Routes>
       {/* Public auth routes */}
       <Route path="/auth" element={<AuthLayout />}>
         <Route path="login" element={<Login />} />
@@ -130,7 +169,8 @@ function App() {
           <Navigate to="/auth/login" replace />
         )
       } />
-    </Routes>
+      </Routes>
+    </ThemeProvider>
   );
 }
 

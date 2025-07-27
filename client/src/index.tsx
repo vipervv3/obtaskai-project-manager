@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { store } from './store';
 import App from './App';
 import './index.css';
+import './mobile.css';
 
 // Workaround for Browser Locker extension interference
 const originalReplaceState = window.history.replaceState;

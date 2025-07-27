@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { supabase } from '../services/supabase';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { asyncHandler, createError } from '../middleware/errorHandler';
+import { notifyCommentAdded } from './notifications';
 
 const router = Router();
 
@@ -58,6 +59,22 @@ router.post('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
 
   if (error) {
     throw createError(error.message, 500);
+  }
+
+  // Get task info for notification
+  const { data: task } = await supabase
+    .from('tasks')
+    .select('title')
+    .eq('id', task_id)
+    .single();
+
+  // Send notification about new comment
+  if (task) {
+    await notifyCommentAdded(
+      task_id,
+      req.user!.full_name || req.user!.email,
+      task.title
+    );
   }
 
   // TODO: Send notifications to mentioned users

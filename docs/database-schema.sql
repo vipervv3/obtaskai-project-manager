@@ -78,13 +78,21 @@ CREATE TABLE public.meetings (
   project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
+  scheduled_date DATE NOT NULL,
+  scheduled_time TIME NOT NULL,
+  duration_minutes INTEGER NOT NULL DEFAULT 30,
+  timezone TEXT NOT NULL DEFAULT 'UTC',
+  location TEXT,
+  meeting_type TEXT CHECK (meeting_type IN ('in_person', 'video_call', 'phone_call')) DEFAULT 'video_call',
+  status TEXT CHECK (status IN ('scheduled', 'in_progress', 'completed', 'cancelled')) DEFAULT 'scheduled',
   transcript TEXT,
   summary TEXT,
   recording_url TEXT,
-  duration INTEGER,
+  duration INTEGER, -- Actual recorded duration (kept for backward compatibility)
   attendees JSONB DEFAULT '[]',
   action_items JSONB DEFAULT '[]',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Time entries table
@@ -119,6 +127,22 @@ CREATE TABLE public.active_timers (
   UNIQUE(user_id, task_id)
 );
 
+-- Voice notes table (for AI voice transcription and analysis)
+CREATE TABLE public.voice_notes (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+  entity_type TEXT NOT NULL CHECK (entity_type IN ('project', 'task')),
+  entity_id UUID NOT NULL, -- References either projects.id or tasks.id
+  original_transcription TEXT NOT NULL,
+  transcription_confidence DECIMAL(3,2) DEFAULT 0.95,
+  transcription_language TEXT DEFAULT 'en',
+  note_type TEXT NOT NULL CHECK (note_type IN ('summary', 'action', 'idea', 'decision', 'issue')),
+  note_content TEXT NOT NULL,
+  note_priority TEXT DEFAULT 'medium' CHECK (note_priority IN ('low', 'medium', 'high')),
+  note_confidence DECIMAL(3,2) DEFAULT 0.8,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_projects_owner_id ON public.projects(owner_id);
 CREATE INDEX idx_projects_status ON public.projects(status);
@@ -138,6 +162,9 @@ CREATE INDEX idx_notifications_user_id ON public.notifications(user_id);
 CREATE INDEX idx_notifications_read ON public.notifications(read);
 CREATE INDEX idx_active_timers_user_id ON public.active_timers(user_id);
 CREATE INDEX idx_active_timers_task_id ON public.active_timers(task_id);
+CREATE INDEX idx_voice_notes_user_id ON public.voice_notes(user_id);
+CREATE INDEX idx_voice_notes_entity ON public.voice_notes(entity_type, entity_id);
+CREATE INDEX idx_voice_notes_created_at ON public.voice_notes(created_at);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -171,6 +198,7 @@ ALTER TABLE public.meetings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.time_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.active_timers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.voice_notes ENABLE ROW LEVEL SECURITY;
 
 -- Users policies
 CREATE POLICY "Users can view their own profile" ON public.users
@@ -344,6 +372,19 @@ CREATE POLICY "Users can update their own active timers" ON public.active_timers
   FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete their own active timers" ON public.active_timers
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Voice notes policies
+CREATE POLICY "Users can view their own voice notes" ON public.voice_notes
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create their own voice notes" ON public.voice_notes
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own voice notes" ON public.voice_notes
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own voice notes" ON public.voice_notes
   FOR DELETE USING (auth.uid() = user_id);
 
 -- Create function to handle new user registration

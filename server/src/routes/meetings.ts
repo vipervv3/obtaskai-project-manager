@@ -11,7 +11,7 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB
+    fileSize: 100 * 1024 * 1024, // 100MB for longer meetings
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'video/mp4'];
@@ -37,7 +37,8 @@ router.get('/project/:projectId', asyncHandler(async (req: AuthenticatedRequest,
       project:projects(id, name)
     `)
     .eq('project_id', projectId)
-    .order('created_at', { ascending: false });
+    .order('scheduled_date', { ascending: false })
+    .order('scheduled_time', { ascending: false });
 
   if (error) {
     throw createError(error.message, 500);
@@ -80,10 +81,21 @@ router.get('/:id', asyncHandler(async (req: AuthenticatedRequest, res) => {
 
 // Create a new meeting
 router.post('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
-  const { project_id, title, description, attendees = [] } = req.body;
+  const { 
+    project_id, 
+    title, 
+    description, 
+    scheduled_date,
+    scheduled_time,
+    duration_minutes,
+    timezone,
+    location,
+    meeting_type,
+    attendees = [] 
+  } = req.body;
 
-  if (!project_id || !title) {
-    throw createError('Project ID and title are required', 400);
+  if (!project_id || !title || !scheduled_date || !scheduled_time) {
+    throw createError('Project ID, title, scheduled date, and time are required', 400);
   }
 
   // Verify user has access to the project
@@ -95,6 +107,13 @@ router.post('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
       project_id,
       title,
       description,
+      scheduled_date,
+      scheduled_time,
+      duration_minutes: duration_minutes || 30,
+      timezone: timezone || 'UTC',
+      location,
+      meeting_type: meeting_type || 'video_call',
+      status: 'scheduled',
       attendees
     })
     .select(`
@@ -116,7 +135,22 @@ router.post('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
 // Update a meeting
 router.put('/:id', asyncHandler(async (req: AuthenticatedRequest, res) => {
   const { id } = req.params;
-  const { title, description, transcript, summary, attendees, action_items, duration } = req.body;
+  const { 
+    title, 
+    description, 
+    scheduled_date,
+    scheduled_time,
+    duration_minutes,
+    timezone,
+    location,
+    meeting_type,
+    status,
+    transcript, 
+    summary, 
+    attendees, 
+    action_items, 
+    duration 
+  } = req.body;
 
   // Get the meeting and verify access
   const { data: existingMeeting, error: meetingError } = await supabase
@@ -134,9 +168,18 @@ router.put('/:id', asyncHandler(async (req: AuthenticatedRequest, res) => {
 
   await verifyProjectAccess(existingMeeting.project_id, req.user!.id);
 
-  const updateData: any = {};
+  const updateData: any = {
+    updated_at: new Date().toISOString()
+  };
   if (title !== undefined) updateData.title = title;
   if (description !== undefined) updateData.description = description;
+  if (scheduled_date !== undefined) updateData.scheduled_date = scheduled_date;
+  if (scheduled_time !== undefined) updateData.scheduled_time = scheduled_time;
+  if (duration_minutes !== undefined) updateData.duration_minutes = duration_minutes;
+  if (timezone !== undefined) updateData.timezone = timezone;
+  if (location !== undefined) updateData.location = location;
+  if (meeting_type !== undefined) updateData.meeting_type = meeting_type;
+  if (status !== undefined) updateData.status = status;
   if (transcript !== undefined) updateData.transcript = transcript;
   if (summary !== undefined) updateData.summary = summary;
   if (attendees !== undefined) updateData.attendees = attendees;

@@ -4,6 +4,7 @@ import { RootState, AppDispatch } from '../../store';
 import { fetchProjects } from '../../store/slices/projectsSlice';
 import { User } from '../../types';
 import aiService from '../../services/aiService';
+import apiService from '../../services/api';
 import {
   LightBulbIcon,
   ClockIcon,
@@ -64,7 +65,40 @@ const AIDashboard: React.FC = () => {
     }
   }, [projects, user]);
 
-  const generateAllInsights = () => {
+  const generateRealMeetingInsights = async (projects: any[]) => {
+    const meetingInsights = [];
+    
+    for (const project of projects) {
+      try {
+        const response = await apiService.get(`/meetings/project/${project.id}`);
+        const meetings = response.data.data || [];
+        
+        // Generate AI summaries for meetings that have transcripts
+        for (const meeting of meetings) {
+          if (meeting.transcript && meeting.transcript.trim()) {
+            const summary = aiService.generateMeetingSummary(
+              meeting.transcript,
+              meeting.attendees || [],
+              meeting.duration || 30
+            );
+            meetingInsights.push({
+              ...summary,
+              meetingId: meeting.id,
+              meetingTitle: meeting.title,
+              projectName: project.name,
+              createdAt: meeting.created_at
+            });
+          }
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch meetings for project ${project.id}:`, error);
+      }
+    }
+    
+    return meetingInsights;
+  };
+
+  const generateAllInsights = async () => {
     const allTasks = projects.flatMap(p => p.tasks || []);
     const teamMembers = projects.flatMap(p => p.members?.map(m => m.user).filter(Boolean) || []) as User[];
     const recentActivity: any[] = []; // Mock data
@@ -77,14 +111,8 @@ const AIDashboard: React.FC = () => {
       aiService.generateAdvancedProjectInsights(project)
     );
 
-    // 3. Meeting Summaries (mock data)
-    const meetingInsights = [
-      aiService.generateMeetingSummary(
-        "We discussed the project timeline and agreed to extend the deadline by one week. John will handle the backend integration by Friday. Sarah needs to complete the frontend design review.",
-        ['John Doe', 'Sarah Smith', 'Mike Johnson'],
-        45
-      )
-    ];
+    // 3. Meeting Summaries (fetch real meetings)
+    const meetingInsights = await generateRealMeetingInsights(projects);
 
     // 4. Smart Resource Allocation
     const resourceInsights = aiService.optimizeResourceAllocation(projects, teamMembers);
@@ -353,15 +381,38 @@ const AIDashboard: React.FC = () => {
             {insights.meetings.length === 0 ? (
               <div className="card text-center py-8">
                 <UsersIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Meeting Summaries</h3>
-                <p className="text-gray-600">Conduct meetings to get AI-generated summaries and action items.</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Meeting Summaries Available</h3>
+                <p className="text-gray-600 mb-4">
+                  Create meetings with transcripts to get AI-powered summaries and action items.
+                </p>
+                <div className="text-sm text-gray-500">
+                  <p><strong>How it works:</strong></p>
+                  <ul className="mt-2 text-left max-w-md mx-auto space-y-1">
+                    <li>• Record meetings or add transcripts</li>
+                    <li>• AI analyzes discussions automatically</li>
+                    <li>• Get summaries, action items, and decisions</li>
+                    <li>• Track sentiment and engagement scores</li>
+                  </ul>
+                </div>
               </div>
             ) : (
               <div className="space-y-6">
                 {insights.meetings.map((meeting, index) => (
-                  <div key={index} className="card">
+                  <div key={meeting.meetingId || index} className="card">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">Meeting Summary</h3>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {meeting.meetingTitle || 'Meeting Summary'}
+                        </h3>
+                        {meeting.projectName && (
+                          <p className="text-sm text-gray-500">{meeting.projectName}</p>
+                        )}
+                        {meeting.createdAt && (
+                          <p className="text-xs text-gray-400">
+                            {new Date(meeting.createdAt).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">Engagement: {meeting.engagementScore}%</span>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${

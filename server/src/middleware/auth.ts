@@ -35,6 +35,30 @@ export const authMiddleware = async (
 
     const token = authHeader.substring(7);
 
+    // Handle mock token for development
+    if (token === 'mock-token' && process.env.NODE_ENV === 'development') {
+      // Find the test user by email
+      const { data: testUser, error: userError } = await supabase
+        .from('users')
+        .select('id, email, full_name')
+        .eq('email', 'test@example.com')
+        .single();
+
+      if (userError || !testUser) {
+        return res.status(401).json({
+          success: false,
+          error: 'Mock user not found. Please ensure the database is properly initialized.'
+        });
+      }
+
+      req.user = {
+        id: testUser.id,
+        email: testUser.email,
+        full_name: testUser.full_name
+      };
+      return next();
+    }
+
     // Verify the JWT token with Supabase
     const { data: { user }, error } = await supabase.auth.getUser(token);
 

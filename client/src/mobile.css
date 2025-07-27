@@ -1,0 +1,265 @@
+/* Mobile App Specific Styles */
+
+/* Safe area support for notched devices */
+.mobile-app {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Fix viewport height on mobile browsers */
+html {
+  height: -webkit-fill-available;
+}
+
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Prevent zoom on input focus (mobile) */
+.mobile-app input[type="text"],
+.mobile-app input[type="email"],
+.mobile-app input[type="password"],
+.mobile-app textarea,
+.mobile-app select {
+  font-size: 16px !important; /* Prevents zoom on iOS */
+}
+
+/* Optimize touch targets for mobile */
+.mobile-app button,
+.mobile-app .btn-primary,
+.mobile-app .btn-secondary {
+  min-height: 44px; /* iOS Human Interface Guidelines */
+  min-width: 44px;
+}
+
+/* Mobile-specific voice recorder */
+.mobile-voice-recorder {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: white;
+}
+
+/* Better mobile modals */
+.mobile-app .modal {
+  margin: 0;
+  border-radius: 0;
+  min-height: 100vh;
+  max-height: 100vh;
+}
+
+/* Mobile navigation improvements */
+.mobile-app .sidebar {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Mobile card improvements */
+.mobile-app .card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Recording button mobile optimization */
+.mobile-recording-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Mobile loading states */
+.mobile-app .loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* Better mobile text sizing */
+.mobile-app {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.mobile-app h1 {
+  font-size: 24px;
+}
+
+.mobile-app h2 {
+  font-size: 20px;
+}
+
+.mobile-app h3 {
+  font-size: 18px;
+}
+
+/* Mobile-specific spacing */
+.mobile-app .container {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* Improve mobile scrolling */
+.mobile-app {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Mobile voice recording visualization */
+.mobile-recording-pulse {
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+/* Mobile dark mode improvements */
+.dark .mobile-app {
+  background-color: #111827;
+  color: #f9fafb;
+}
+
+/* Better mobile form styling */
+.mobile-app form {
+  padding: 20px;
+}
+
+.mobile-app .form-group {
+  margin-bottom: 20px;
+}
+
+/* Mobile toast notifications */
+.mobile-toast {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom) + 20px);
+  left: 16px;
+  right: 16px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
+  z-index: 1000;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Keyboard handling */
+.keyboard-visible {
+  padding-bottom: 0 !important;
+}
+
+.keyboard-visible .fixed {
+  position: absolute !important;
+}
+
+/* Modal animations */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Safe area padding */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+/* Mobile form improvements */
+.mobile-app input,
+.mobile-app textarea,
+.mobile-app select {
+  font-size: 16px !important; /* Prevents zoom on iOS */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Sticky form buttons */
+.mobile-form-footer {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0));
+  margin: -16px -16px 0;
+  z-index: 10;
+}
+
+/* Mobile scroll improvements */
+.mobile-scrollable {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Fix for input focus scroll */
+.mobile-app input:focus,
+.mobile-app textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Mobile landscape improvements */
+@media (orientation: landscape) and (max-height: 600px) {
+  .mobile-app .header {
+    height: 50px;
+  }
+  
+  .mobile-app .mobile-recording-btn {
+    width: 60px;
+    height: 60px;
+    bottom: 10px;
+    right: 10px;
+  }
+  
+  .mobile-app .modal {
+    max-height: 90vh;
+  }
+}

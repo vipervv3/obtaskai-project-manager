@@ -2,19 +2,27 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { AppDispatch, RootState } from '../../store';
-import { fetchProjects, createProject, deleteProject } from '../../store/slices/projectsSlice';
-import { CreateProjectDto } from '../../types';
+import { fetchProjects, createProject, deleteProject, updateProject } from '../../store/slices/projectsSlice';
+import { CreateProjectDto, Project, UpdateProjectDto } from '../../types';
+import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import MobileModal from '../../components/Mobile/MobileModal';
+import { useMobileKeyboard } from '../../hooks/useMobileKeyboard';
+import { isMobileApp } from '../../utils/mobileUtils';
+import apiService from '../../services/api';
 
 const Projects: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { projects, loading, creating, deleting } = useSelector((state: RootState) => state.projects);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [formData, setFormData] = useState<CreateProjectDto>({
     name: '',
     description: '',
     deadline: ''
   });
+  const { isKeyboardVisible } = useMobileKeyboard();
 
   useEffect(() => {
     dispatch(fetchProjects());
@@ -22,6 +30,9 @@ const Projects: React.FC = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Creating project with data:', formData);
+    console.log('API URL:', apiService.getBaseUrl());
+    
     try {
       const result = await dispatch(createProject(formData));
       if (createProject.fulfilled.match(result)) {
@@ -31,16 +42,55 @@ const Projects: React.FC = () => {
         dispatch(fetchProjects());
       } else {
         console.error('Failed to create project:', result);
-        alert('Failed to create project. Please try again.');
+        const errorMessage = result.payload || 'Failed to create project. Please try again.';
+        alert(`Error: ${errorMessage}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating project:', error);
-      alert('An error occurred while creating the project.');
+      alert(`An error occurred: ${error.message || 'Unknown error'}`);
     }
   };
 
   const handleProjectClick = (projectId: string) => {
     navigate(`/projects/${projectId}`);
+  };
+
+  const handleEditProject = (e: React.MouseEvent, project: Project) => {
+    e.stopPropagation(); // Prevent navigation
+    setEditingProject(project);
+    setFormData({
+      name: project.name,
+      description: project.description || '',
+      deadline: project.deadline || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProject) return;
+
+    try {
+      const updateData: UpdateProjectDto = {
+        name: formData.name,
+        description: formData.description,
+        deadline: formData.deadline
+      };
+      
+      const result = await dispatch(updateProject({ id: editingProject.id, updates: updateData }));
+      if (updateProject.fulfilled.match(result)) {
+        setShowEditModal(false);
+        setEditingProject(null);
+        setFormData({ name: '', description: '', deadline: '' });
+        dispatch(fetchProjects());
+        alert('Project updated successfully!');
+      } else {
+        alert('Failed to update project. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating project:', error);
+      alert('An error occurred while updating the project.');
+    }
   };
 
   const handleDeleteProject = async (e: React.MouseEvent, projectId: string, projectName: string) => {
@@ -72,7 +122,7 @@ const Projects: React.FC = () => {
   console.log('ShowCreateModal:', showCreateModal);
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div className={`${isMobileApp() ? 'mobile-app' : ''}`} style={{ padding: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Projects</h1>
         <button 
@@ -167,110 +217,190 @@ const Projects: React.FC = () => {
                   )}
                 </div>
               </div>
-              <button
-                onClick={(e) => handleDeleteProject(e, project.id, project.name)}
-                disabled={deleting}
-                style={{
-                  position: 'absolute',
-                  top: '8px',
-                  right: '8px',
-                  backgroundColor: '#fef2f2',
-                  color: '#dc2626',
-                  border: 'none',
-                  borderRadius: '4px',
-                  padding: '4px',
-                  cursor: 'pointer',
-                  display: 'block'
-                }}
-                title="Delete project"
-              >
-                <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
+              <div style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                display: 'flex',
+                gap: '8px'
+              }}>
+                <button
+                  onClick={(e) => handleEditProject(e, project)}
+                  style={{
+                    backgroundColor: '#e0f2fe',
+                    color: '#0284c7',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '6px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Edit project"
+                >
+                  <PencilIcon style={{ width: '16px', height: '16px' }} />
+                </button>
+                <button
+                  onClick={(e) => handleDeleteProject(e, project.id, project.name)}
+                  disabled={deleting}
+                  style={{
+                    backgroundColor: '#fef2f2',
+                    color: '#dc2626',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '6px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Delete project"
+                >
+                  <TrashIcon style={{ width: '16px', height: '16px' }} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
 
       {/* Create Project Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Create New Project</h2>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Project Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="Enter project name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  rows={3}
-                  placeholder="Enter project description"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Deadline
-                </label>
-                <input
-                  type="date"
-                  value={formData.deadline}
-                  onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#f3f4f6',
-                    color: '#374151',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '500'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: creating ? '#9ca3af' : '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: creating ? 'not-allowed' : 'pointer',
-                    fontWeight: '500'
-                  }}
-                >
-                  {creating ? 'Creating...' : 'Create Project'}
-                </button>
-              </div>
-            </form>
+      <MobileModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Create New Project"
+        fullScreen={isMobileApp()}
+      >
+        <form onSubmit={handleCreate} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Project Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Enter project name"
+            />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              rows={3}
+              placeholder="Enter project description"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Deadline
+            </label>
+            <input
+              type="date"
+              value={formData.deadline}
+              onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          <div className={`${isMobileApp() ? 'mobile-form-footer' : 'flex justify-end space-x-3 pt-4'}`}>
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md font-medium hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={creating}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {creating ? 'Creating...' : 'Create Project'}
+              </button>
+            </div>
+          </div>
+        </form>
+      </MobileModal>
+
+      {/* Edit Project Modal */}
+      <MobileModal
+        isOpen={showEditModal && editingProject !== null}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingProject(null);
+          setFormData({ name: '', description: '', deadline: '' });
+        }}
+        title="Edit Project"
+        fullScreen={isMobileApp()}
+      >
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Project Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Enter project name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              rows={3}
+              placeholder="Enter project description"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Deadline
+            </label>
+            <input
+              type="date"
+              value={formData.deadline}
+              onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          <div className={`${isMobileApp() ? 'mobile-form-footer' : 'flex justify-end space-x-3 pt-4'}`}>
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingProject(null);
+                  setFormData({ name: '', description: '', deadline: '' });
+                }}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md font-medium hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700"
+              >
+                Update Project
+              </button>
+            </div>
+          </div>
+        </form>
+      </MobileModal>
     </div>
   );
 };

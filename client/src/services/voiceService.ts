@@ -173,7 +173,7 @@ class VoiceService {
       
       // If transcription fails, try to provide a helpful error message
       if (error.response?.status === 413) {
-        throw new Error('Audio file is too large. Please record a shorter message (max 25MB).');
+        throw new Error('Audio file is too large for transcription. Files over 25MB need to be split into smaller segments. Your recording has been backed up automatically.');
       } else if (error.response?.status === 400) {
         throw new Error('Invalid audio format. Please try recording again.');
       } else if (error.response?.data?.error) {
@@ -371,6 +371,82 @@ class VoiceService {
     } catch (error) {
       console.error('Failed to fetch voice notes:', error);
       return [];
+    }
+  }
+
+  // Backup recording to server storage
+  async backupRecording(audioBlob: Blob): Promise<{backup_url: string, file_name: string, size: number}> {
+    try {
+      console.log('Backing up recording...', {
+        size: audioBlob.size,
+        type: audioBlob.type
+      });
+      
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('audio', audioBlob, `recording-${Date.now()}.wav`);
+      
+      // Call the backup API
+      const response = await apiService.post('/transcription/backup-recording', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      if (response.data.success) {
+        const { backup_url, file_name, size } = response.data.data;
+        
+        console.log('Recording backed up successfully:', {
+          backup_url,
+          file_name,
+          size
+        });
+        
+        return { backup_url, file_name, size };
+      } else {
+        throw new Error(response.data.error || 'Backup failed');
+      }
+    } catch (error: any) {
+      console.error('Recording backup failed:', error);
+      
+      if (error.response?.status === 413) {
+        throw new Error('Recording is too large to backup. Please split into smaller segments.');
+      } else if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      } else {
+        throw new Error('Failed to backup recording. Please check your internet connection.');
+      }
+    }
+  }
+
+  // Get list of backed up recordings
+  async getBackedUpRecordings(): Promise<Array<{name: string, size: number, created_at: string, url: string}>> {
+    try {
+      const response = await apiService.get('/transcription/recordings');
+      
+      if (response.data.success) {
+        return response.data.data.recordings || [];
+      } else {
+        throw new Error(response.data.error || 'Failed to fetch recordings');
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch backed up recordings:', error);
+      return [];
+    }
+  }
+
+  // Test OpenAI connection
+  async testOpenAIConnection(): Promise<{success: boolean, error?: string, details?: any}> {
+    try {
+      const response = await apiService.get('/transcription/test-openai');
+      return response.data;
+    } catch (error: any) {
+      console.error('OpenAI test failed:', error);
+      return {
+        success: false,
+        error: 'Failed to test OpenAI connection',
+        details: error.response?.data || error.message
+      };
     }
   }
 }

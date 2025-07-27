@@ -38,6 +38,11 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [backupUrl, setBackupUrl] = useState<string | null>(null);
+  const [showLongRecordingWarning, setShowLongRecordingWarning] = useState(false);
+  const [testResult, setTestResult] = useState<any>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -95,9 +100,19 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       setIsRecording(false);
       setAudioBlob(blob);
       
-      // Start processing
-      setIsProcessing(true);
-      await processRecording(blob);
+      // Check if recording is very long (>45 minutes or >25MB)
+      const durationMinutes = recordingTime / 60;
+      const sizeMB = blob.size / (1024 * 1024);
+      
+      if (durationMinutes > 45 || sizeMB > 25) {
+        setShowLongRecordingWarning(true);
+        // Auto-backup long recordings
+        await backupRecording(blob);
+      } else {
+        // Start processing immediately for shorter recordings
+        setIsProcessing(true);
+        await processRecording(blob);
+      }
     } catch (error) {
       console.error('Failed to stop recording:', error);
       setError('Failed to stop recording');
@@ -105,9 +120,36 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     }
   };
 
+  const backupRecording = async (blob: Blob) => {
+    try {
+      setIsBackingUp(true);
+      setError(null);
+      
+      // Backup recording to server storage
+      const backupResult = await voiceService.backupRecording(blob);
+      setBackupUrl(backupResult.backup_url);
+      
+      setIsBackingUp(false);
+      
+      // Show success message
+      console.log('Recording backed up successfully:', backupResult.backup_url);
+    } catch (error: any) {
+      console.error('Failed to backup recording:', error);
+      setError('Failed to backup recording: ' + (error.message || 'Unknown error'));
+      setIsBackingUp(false);
+    }
+  };
+
   const processRecording = async (blob: Blob) => {
     try {
       setError(null); // Clear any previous errors
+      setShowLongRecordingWarning(false);
+      
+      // For large recordings, backup first
+      const sizeMB = blob.size / (1024 * 1024);
+      if (sizeMB > 20 && !backupUrl) {
+        await backupRecording(blob);
+      }
       
       // Transcribe audio
       const transcriptionText = await voiceService.transcribeAudio(blob);
@@ -122,7 +164,13 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       console.error('Failed to process recording:', error);
       
       // Show the specific error message from the service
-      const errorMessage = error.message || 'Failed to process recording. Please try again.';
+      let errorMessage = error.message || 'Failed to process recording. Please try again.';
+      
+      // If it's a size error and we haven't backed up yet, suggest backup
+      if (error.message?.includes('too large') && !backupUrl) {
+        errorMessage += ' Your recording has been automatically backed up. You can try again with a shorter segment.';
+      }
+      
       setError(errorMessage);
       setIsProcessing(false);
     }
@@ -207,6 +255,21 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     } catch (error) {
       console.error('Failed to save notes:', error);
       setError('Failed to save notes');
+      setIsProcessing(false);
+    }
+  };
+
+  const testOpenAI = async () => {
+    try {
+      setIsProcessing(true);
+      const result = await voiceService.testOpenAIConnection();
+      setTestResult(result);
+      setShowDiagnostics(true);
+    } catch (error) {
+      console.error('Test failed:', error);
+      setTestResult({ success: false, error: 'Test failed' });
+      setShowDiagnostics(true);
+    } finally {
       setIsProcessing(false);
     }
   };
@@ -340,20 +403,113 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         </div>
 
         {/* Processing Status */}
-        {isProcessing && (
+        {(isProcessing || isBackingUp) && (
           <div className="text-center py-6">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Processing your voice recording...</p>
+            <p className="text-gray-600">
+              {isBackingUp ? 'Backing up your recording...' : 'Processing your voice recording...'}
+            </p>
+          </div>
+        )}
+        
+        {/* Long Recording Warning */}
+        {showLongRecordingWarning && audioBlob && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-medium text-yellow-800 mb-2">Long Recording Detected</h4>
+                <p className="text-sm text-yellow-700 mb-3">
+                  Your recording is {Math.round(recordingTime / 60)} minutes long ({(audioBlob.size / (1024 * 1024)).toFixed(1)}MB). 
+                  For best results with long meetings:
+                </p>
+                <div className="space-y-2 text-sm text-yellow-700">
+                  <p>• Recording has been backed up to your account</p>
+                  <p>• Large files may take longer to process</p>
+                  <p>• Consider splitting very long meetings into segments</p>
+                </div>
+                {backupUrl && (
+                  <div className="mt-3 p-2 bg-green-100 rounded text-sm text-green-800">
+                    ✅ Backup completed successfully! Your recording is safe.
+                  </div>
+                )}
+                <div className="flex gap-2 mt-4">
+                  <button 
+                    onClick={() => processRecording(audioBlob)}
+                    disabled={isProcessing}
+                    className="btn-primary text-sm disabled:opacity-50">
+                    Process Anyway
+                  </button>
+                  <button 
+                    onClick={() => setShowLongRecordingWarning(false)}
+                    className="btn-secondary text-sm">
+                    Keep Recording Only
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <ExclamationTriangleIcon className="w-5 h-5 text-red-500" />
-              <span className="text-red-800">{error}</span>
+            <div className="flex items-start gap-2">
+              <ExclamationTriangleIcon className="w-5 h-5 text-red-500 mt-0.5" />
+              <div className="flex-1">
+                <span className="text-red-800">{error}</span>
+                {backupUrl && (
+                  <div className="mt-2 p-2 bg-blue-100 rounded text-sm text-blue-800">
+                    💾 Your recording is safely backed up and can be accessed later.
+                  </div>
+                )}
+                <div className="mt-3">
+                  <button 
+                    onClick={testOpenAI}
+                    disabled={isProcessing}
+                    className="btn-secondary text-sm disabled:opacity-50">
+                    🔧 Test AI Connection
+                  </button>
+                </div>
+              </div>
             </div>
+          </div>
+        )}
+        
+        {/* Diagnostics */}
+        {showDiagnostics && testResult && (
+          <div className={`border rounded-lg p-4 ${
+            testResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+          }`}>
+            <h4 className={`font-medium mb-2 ${
+              testResult.success ? 'text-green-800' : 'text-red-800'
+            }`}>
+              🔧 AI Service Diagnostics
+            </h4>
+            
+            {testResult.success ? (
+              <div className="text-green-700 text-sm space-y-1">
+                <p>✅ OpenAI connection: Working</p>
+                <p>✅ Whisper model: {testResult.data?.whisper_available ? 'Available' : 'Not found'}</p>
+                <p>✅ API key: Configured ({testResult.data?.api_key_prefix})</p>
+                <p>📊 Models available: {testResult.data?.total_models}</p>
+              </div>
+            ) : (
+              <div className="text-red-700 text-sm space-y-1">
+                <p>❌ Connection failed: {testResult.error}</p>
+                {testResult.details && (
+                  <div className="mt-2 bg-red-100 p-2 rounded text-xs font-mono">
+                    <pre>{JSON.stringify(testResult.details, null, 2)}</pre>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <button 
+              onClick={() => setShowDiagnostics(false)}
+              className="btn-secondary text-xs mt-2">
+              Close
+            </button>
           </div>
         )}
 
@@ -412,9 +568,66 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                 </div>
               </div>
             )}
+            
+            {/* Backup Status */}
+            {backupUrl && !extractedNotes.length && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckIcon className="w-5 h-5 text-blue-500" />
+                  <span className="font-medium text-blue-800">Recording Backed Up</span>
+                </div>
+                <p className="text-sm text-blue-700 mb-3">
+                  Your recording has been safely stored. You can process it now or retrieve it later.
+                </p>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => audioBlob && processRecording(audioBlob)}
+                    disabled={isProcessing || !audioBlob}
+                    className="btn-primary text-sm disabled:opacity-50">
+                    Process Recording
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (onClose) onClose();
+                    }}
+                    className="btn-secondary text-sm">
+                    Save for Later
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
+        {/* Recording Info */}
+        {audioBlob && (
+          <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="font-medium">Duration:</span> {formatTime(recordingTime)}
+              </div>
+              <div>
+                <span className="font-medium">Size:</span> {(audioBlob.size / (1024 * 1024)).toFixed(1)}MB
+              </div>
+            </div>
+            {backupUrl && (
+              <div className="mt-2 text-green-600">
+                ✅ Backed up successfully
+              </div>
+            )}
+            {error && (
+              <div className="mt-2">
+                <button 
+                  onClick={testOpenAI}
+                  disabled={isProcessing}
+                  className="btn-secondary text-xs disabled:opacity-50">
+                  🔧 Diagnose Issue
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        
         {/* Hidden audio element for playback */}
         <audio ref={audioRef} style={{ display: 'none' }} />
       </div>

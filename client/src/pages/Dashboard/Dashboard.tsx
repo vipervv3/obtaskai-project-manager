@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { RootState, AppDispatch } from '../../store';
 import { fetchProjects } from '../../store/slices/projectsSlice';
 import LoadingSpinner from '../../components/UI/LoadingSpinner';
+import VoiceRecorder from '../../components/Voice/VoiceRecorder';
+import RecordingLibrary from '../../components/Voice/RecordingLibrary';
 import aiService from '../../services/aiService';
 import {
   FolderIcon,
@@ -14,6 +16,8 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   InformationCircleIcon,
+  MicrophoneIcon,
+  CloudIcon,
 } from '@heroicons/react/24/outline';
 
 const Dashboard: React.FC = () => {
@@ -23,6 +27,10 @@ const Dashboard: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
   const [aiRecommendations, setAiRecommendations] = useState<any[]>([]);
   const [nextTask, setNextTask] = useState<any>(null);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [selectedEntity, setSelectedEntity] = useState<{type: 'project' | 'task', id: string, name: string} | null>(null);
+  const [showEntitySelector, setShowEntitySelector] = useState(false);
+  const [showRecordingLibrary, setShowRecordingLibrary] = useState(false);
 
   useEffect(() => {
     dispatch(fetchProjects());
@@ -197,6 +205,18 @@ const Dashboard: React.FC = () => {
               <ClockIcon className="w-4 h-4 mr-2" />
               Schedule Meeting
             </button>
+            <button 
+              onClick={() => setShowEntitySelector(true)}
+              className="btn-secondary w-full">
+              <MicrophoneIcon className="w-4 h-4 mr-2" />
+              Meeting Recording
+            </button>
+            <button 
+              onClick={() => setShowRecordingLibrary(true)}
+              className="btn-secondary w-full">
+              <CloudIcon className="w-4 h-4 mr-2" />
+              Recording Library
+            </button>
           </div>
         </div>
 
@@ -369,6 +389,120 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Entity Selection Modal */}
+      {showEntitySelector && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Select Project for Meeting</h3>
+              <button 
+                onClick={() => setShowEntitySelector(false)}
+                className="text-gray-400 hover:text-gray-600">
+                ×
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Choose which project this meeting recording should be associated with for AI task assignment.
+            </p>
+            
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {projects.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-gray-500">No projects available</p>
+                  <button 
+                    onClick={() => {
+                      setShowEntitySelector(false);
+                      navigate('/projects');
+                    }}
+                    className="btn-primary mt-2">
+                    Create Project
+                  </button>
+                </div>
+              ) : (
+                projects.map((project) => (
+                  <button
+                    key={project.id}
+                    onClick={() => {
+                      setSelectedEntity({
+                        type: 'project',
+                        id: project.id,
+                        name: project.name
+                      });
+                      setShowEntitySelector(false);
+                      setShowVoiceRecorder(true);
+                    }}
+                    className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium text-gray-900">{project.name}</h4>
+                        <p className="text-sm text-gray-600 truncate">
+                          {project.description || 'No description'}
+                        </p>
+                      </div>
+                      <span className={`tag ${
+                        project.status === 'active' ? 'tag-medium' : 
+                        project.status === 'completed' ? 'tag-low' : 'tag-high'
+                      }`}>
+                        {project.status}
+                      </span>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button 
+                onClick={() => setShowEntitySelector(false)}
+                className="btn-secondary flex-1">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Voice Recorder Modal */}
+      {showVoiceRecorder && selectedEntity && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <VoiceRecorder
+              entityType={selectedEntity.type}
+              entityId={selectedEntity.id}
+              entityName={selectedEntity.name}
+              onClose={() => {
+                setShowVoiceRecorder(false);
+                setSelectedEntity(null);
+              }}
+              onNotesExtracted={(notes) => {
+                console.log('Meeting notes extracted for', selectedEntity.name, ':', notes);
+                // The AI will now intelligently assign action items to the selected project
+                setShowVoiceRecorder(false);
+                setSelectedEntity(null);
+              }}
+            />
+          </div>
+        </div>
+      )}
+      
+      {/* Recording Library Modal */}
+      {showRecordingLibrary && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <RecordingLibrary
+              onClose={() => setShowRecordingLibrary(false)}
+              onSelectRecording={(url, name) => {
+                // You could process a selected recording here
+                console.log('Selected recording:', url, name);
+                setShowRecordingLibrary(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

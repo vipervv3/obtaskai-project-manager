@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { supabase } from '../services/supabase';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { asyncHandler, createError } from '../middleware/errorHandler';
+import { notifyTaskAssigned, notifyTaskUpdated } from './notifications';
 
 const router = Router();
 
@@ -152,6 +153,16 @@ router.post('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
     throw createError(error.message, 500);
   }
 
+  // Send notification if task is assigned to someone
+  if (assignee_id && assignee_id !== req.user!.id) {
+    await notifyTaskAssigned(
+      task.id,
+      assignee_id,
+      req.user!.full_name || req.user!.email,
+      task.title
+    );
+  }
+
   res.status(201).json({
     success: true,
     data: task
@@ -211,6 +222,25 @@ router.put('/:id', asyncHandler(async (req: AuthenticatedRequest, res) => {
   if (error) {
     throw createError(error.message, 500);
   }
+
+  // Send notifications for task updates
+  if (assignee_id !== undefined && assignee_id !== req.user!.id) {
+    // Notify new assignee
+    await notifyTaskAssigned(
+      task.id,
+      assignee_id,
+      req.user!.full_name || req.user!.email,
+      task.title
+    );
+  }
+
+  // Notify project members about task update
+  await notifyTaskUpdated(
+    task.id,
+    existingTask.project_id,
+    req.user!.full_name || req.user!.email,
+    task.title
+  );
 
   res.json({
     success: true,

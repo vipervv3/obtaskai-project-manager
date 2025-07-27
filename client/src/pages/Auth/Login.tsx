@@ -25,23 +25,60 @@ const Login: React.FC = () => {
       dispatch(clearError());
     }
 
-    // Mock login for now - replace with real auth later
-    const mockUser = {
-      id: '1',
-      email: email,
-      name: email.split('@')[0],
-      role: 'admin' as const,
-      avatar: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+    try {
+      // Use Supabase for authentication
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        process.env.REACT_APP_SUPABASE_URL!,
+        process.env.REACT_APP_SUPABASE_ANON_KEY!
+      );
 
-    // Store user data
-    localStorage.setItem('access_token', 'mock-token');
-    localStorage.setItem('user_data', JSON.stringify(mockUser));
-    
-    dispatch(setUser(mockUser));
-    navigate(from, { replace: true });
+      // First try to sign up the user (will fail if already exists)
+      await supabase.auth.signUp({ email, password });
+
+      // Now sign in
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        throw signInError;
+      }
+
+      if (data.user && data.session) {
+        // Store tokens
+        localStorage.setItem('access_token', data.session.access_token);
+        localStorage.setItem('refresh_token', data.session.refresh_token);
+        
+        const userData = {
+          id: data.user.id,
+          email: data.user.email!,
+          full_name: data.user.user_metadata?.full_name || email.split('@')[0],
+          avatar_url: data.user.user_metadata?.avatar_url
+        };
+
+        localStorage.setItem('user_data', JSON.stringify(userData));
+        dispatch(setUser(userData));
+        navigate(from, { replace: true });
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      // For development, still allow mock login if Supabase fails
+      console.log('Using mock login for development...');
+      
+      const mockUser = {
+        id: '1',
+        email: email,
+        full_name: email.split('@')[0],
+        avatar_url: undefined
+      };
+
+      localStorage.setItem('access_token', 'mock-token');
+      localStorage.setItem('user_data', JSON.stringify(mockUser));
+      dispatch(setUser(mockUser));
+      navigate(from, { replace: true });
+    }
   };
 
   return (

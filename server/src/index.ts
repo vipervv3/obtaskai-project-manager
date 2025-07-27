@@ -10,6 +10,8 @@ import dotenv from 'dotenv';
 import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware } from './middleware/auth';
 import { setupSocketHandlers } from './services/socketService';
+import { initMockUser } from './utils/initMockUser';
+import { dailyAssistant } from './services/dailyAssistant';
 
 // Import routes
 import authRoutes from './routes/auth';
@@ -20,6 +22,9 @@ import meetingRoutes from './routes/meetings';
 import timeEntryRoutes from './routes/timeEntries';
 import aiRoutes from './routes/ai';
 import transcriptionRoutes from './routes/transcription';
+import notificationRoutes, { setSocketIo } from './routes/notifications';
+import calendarRoutes from './routes/calendar';
+import userRoutes from './routes/user';
 
 dotenv.config();
 
@@ -30,7 +35,10 @@ const server = createServer(app);
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://obtaskai-project-manager.vercel.app', 'https://obtaskai-project-manager-git-main-vipervv3.vercel.app'] 
-    : ['http://localhost:3000'],
+    : (origin, callback) => {
+        // Allow any origin in development for mobile testing
+        callback(null, true);
+      },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -64,8 +72,8 @@ app.use(helmet({
 app.use(cors(corsOptions));
 app.use(compression());
 app.use(limiter);
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -86,9 +94,15 @@ app.use('/api/meetings', authMiddleware, meetingRoutes);
 app.use('/api/time-entries', authMiddleware, timeEntryRoutes);
 app.use('/api/ai', authMiddleware, aiRoutes);
 app.use('/api/transcription', transcriptionRoutes);
+app.use('/api/notifications', authMiddleware, notificationRoutes);
+app.use('/api/calendar', authMiddleware, calendarRoutes);
+app.use('/api/user', authMiddleware, userRoutes);
 
 // Setup Socket.io handlers
 setupSocketHandlers(io);
+
+// Set socket.io instance for notifications
+setSocketIo(io);
 
 // Error handling middleware
 app.use(errorHandler);
@@ -103,10 +117,17 @@ app.use('*', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Socket.io enabled`);
+  console.log(`📧 Daily Assistant initialized`);
+  
+  // Initialize mock user for development
+  await initMockUser();
+  
+  // Initialize daily assistant (will start cron jobs)
+  console.log('Daily Assistant service is running with scheduled notifications');
 });
 
 // Graceful shutdown
